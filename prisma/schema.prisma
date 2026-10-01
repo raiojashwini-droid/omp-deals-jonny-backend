@@ -113,7 +113,7 @@ model Store {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("stores")
+  @@map("store")
 }
 
 model User {
@@ -159,7 +159,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("users")
+  @@map("user")
 }
 
 model UserSubscription {
@@ -171,7 +171,7 @@ model UserSubscription {
   startDate DateTime         @default(now())
   endDate   DateTime?
 
-  @@map("user_subscriptions")
+  @@map("usersubscription")
 }
 
 model Vehicle {
@@ -213,7 +213,7 @@ model Vehicle {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  @@map("vehicles")
+  @@map("vehicle")
 }
 
 model RolePermission {
@@ -222,7 +222,7 @@ model RolePermission {
   permissions Json     @default("{}")
   updatedAt   DateTime @updatedAt
 
-  @@map("role_permissions")
+  @@map("rolepermission")
 }
 
 model Favorite {
@@ -234,7 +234,7 @@ model Favorite {
   createdAt DateTime @default(now())
 
   @@unique([userId, vehicleId])
-  @@map("favorites")
+  @@map("favorite")
 }
 
 model Lead {
@@ -280,7 +280,7 @@ model Lead {
   assignmentLogs LeadAssignmentLog[]
   messages       LeadMessage[]
 
-  @@map("leads")
+  @@map("lead")
 }
 
 model LeadMessage {
@@ -297,7 +297,7 @@ model LeadMessage {
 
   @@index([leadId])
   @@index([userId])
-  @@map("lead_messages")
+  @@map("leadmessage")
 }
 
 model CallLog {
@@ -313,7 +313,7 @@ model CallLog {
 
   createdAt DateTime @default(now())
 
-  @@map("call_logs")
+  @@map("calllog")
 }
 
 model SalesNote {
@@ -326,7 +326,7 @@ model SalesNote {
   content   String
   createdAt DateTime @default(now())
 
-  @@map("sales_notes")
+  @@map("salesnote")
 }
 
 model Deal {
@@ -374,7 +374,7 @@ model Deal {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("deals")
+  @@map("deal")
 }
 
 model Message {
@@ -389,7 +389,7 @@ model Message {
 
   createdAt DateTime @default(now())
 
-  @@map("messages")
+  @@map("message")
 }
 
 // -----------------------------------------------------------------------------
@@ -403,7 +403,7 @@ model DMSFeed {
   status           String // SUCCESS, FAILED
   recordsProcessed Int      @default(0)
 
-  @@map("d_m_s_feeds")
+  @@map("dmsfeed")
 }
 
 model ReconTicket {
@@ -416,7 +416,7 @@ model ReconTicket {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  @@map("recon_tickets")
+  @@map("reconticket")
 }
 
 model VehiclePhoto {
@@ -427,7 +427,7 @@ model VehiclePhoto {
   isAIEnhanced Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  @@map("vehicle_photos")
+  @@map("vehiclephoto")
 }
 
 model SocialPost {
@@ -438,7 +438,7 @@ model SocialPost {
   content   String
   postedAt  DateTime @default(now())
 
-  @@map("social_posts")
+  @@map("socialpost")
 }
 
 model Expense {
@@ -449,7 +449,7 @@ model Expense {
   amount   Float
   date     DateTime @default(now())
 
-  @@map("expenses")
+  @@map("expense")
 }
 
 model ROIReport {
@@ -463,7 +463,7 @@ model ROIReport {
   roiPercent Float
   createdAt  DateTime @default(now())
 
-  @@map("r_o_i_reports")
+  @@map("roireport")
 }
 
 // -----------------------------------------------------------------------------
@@ -476,7 +476,7 @@ model Lender {
   tier  String // Prime, Subprime, etc.
   deals Deal[]
 
-  @@map("lenders")
+  @@map("lender")
 }
 
 model BHPHAccount {
@@ -487,7 +487,7 @@ model BHPHAccount {
   deal            Deal?
   payments        BHPHPayment[]
 
-  @@map("b_h_p_h_accounts")
+  @@map("bhphaccount")
 }
 
 model BHPHPayment {
@@ -497,7 +497,7 @@ model BHPHPayment {
   amount    Float
   date      DateTime    @default(now())
 
-  @@map("b_h_p_h_payments")
+  @@map("bhphpayment")
 }
 
 // -----------------------------------------------------------------------------
@@ -515,7 +515,7 @@ model AffiliateLink {
   total_commission_paid Float    @default(0.00)
   createdAt             DateTime @default(now())
 
-  @@map("affiliate_links")
+  @@map("affiliatelink")
 }
 
 model Commission {
@@ -526,7 +526,7 @@ model Commission {
   status    String // PENDING, PAID
   createdAt DateTime @default(now())
 
-  @@map("commissions")
+  @@map("commission")
 }
 
 model PoliceSafeSpot {
@@ -541,7 +541,7 @@ model PoliceSafeSpot {
   surveillance_247 Boolean  @default(true)
   createdAt        DateTime @default(now())
 
-  @@map("police_safe_spots")
+  @@map("policesafespot")
 }
 
 model TrackingEvent {
@@ -557,7 +557,7 @@ model TrackingEvent {
   createdAt        DateTime @default(now())
 
   @@index([storeId, createdAt])
-  @@map("tracking_events")
+  @@map("trackingevent")
 }
 
 model LeadAssignmentLog {
@@ -575,7 +575,7 @@ model LeadAssignmentLog {
   createdAt DateTime         @default(now())
 
   @@index([leadId])
-  @@map("lead_assignment_logs")
+  @@map("leadassignmentlog")
 }
 
 model LeadNotification {
@@ -591,7 +591,7 @@ model LeadNotification {
 
   @@index([userId, read])
   @@index([expiresAt])
-  @@map("lead_notifications")
+  @@map("leadnotification")
 }
 
 model TransportBooking {
@@ -606,5 +606,5 @@ model TransportBooking {
   status         String   @default("PENDING")
   createdAt      DateTime @default(now())
 
-  @@map("transport_bookings")
+  @@map("transportbooking")
 }
