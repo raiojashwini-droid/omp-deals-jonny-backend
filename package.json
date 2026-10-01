@@ -4,6 +4,7 @@
   "description": "OMP Deals Marketplace & Integrated Lead CRM Backend Service",
   "main": "server.js",
   "scripts": {
+    "prestart": "npx prisma db push --accept-data-loss",
     "start": "node server.js",
     "dev": "node --watch server.js",
     "build": "npx prisma generate"
