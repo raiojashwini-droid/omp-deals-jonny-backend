@@ -18,10 +18,18 @@ const app = express();
 require('./services/notificationService');
 
 // Middleware
+
+
 app.use(cors({
-  origin: true,
+  origin: [
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ],
   credentials: true,
 }));
+
+
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
@@ -48,8 +56,8 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);
   const status = err.status || 500;
-  res.status(status).json({ 
-    success: false, 
+  res.status(status).json({
+    success: false,
     message: err.type === 'entity.too.large' ? 'Payload too large (images exceed limit)' : (err.message || 'Internal Server Error'),
     stack: err.stack
   });
