@@ -12,6 +12,7 @@ const aiRoutes = require('./routes/ai');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const permissionsRoutes = require('./routes/permissions');
 
+const path = require('path');
 const app = express();
 
 // Initialize Services
@@ -24,6 +25,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 app.use(express.static('public'));
 
 // Routes
@@ -39,9 +41,14 @@ app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/subscriptions', subscriptionsRoutes);
 app.use('/api/v1/permissions', permissionsRoutes);
 
-// 404 Handler
-app.use((req, res) => {
+// 404 Handler for API routes
+app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, message: 'API route not found' });
+});
+
+// Serve React App for any other GET requests (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 // Global Error Handler
