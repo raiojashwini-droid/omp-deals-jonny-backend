@@ -1,0 +1,99 @@
+const marketplaceService = require('../services/marketplaceService');
+
+class MarketplaceController {
+  async getListings(req, res) {
+    try {
+      const filters = req.query;
+      const { total, data } = await marketplaceService.getListings(filters);
+      
+      res.status(200).json({
+        success: true,
+        total,
+        data
+      });
+    } catch (error) {
+      console.error('Get Listings Error:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'FETCH_LISTINGS_FAILED',
+          message: 'An error occurred while fetching listings'
+        }
+      });
+    }
+  }
+
+  async createListing(req, res) {
+    try {
+      const data = req.body;
+      const user = req.user;
+      
+      const newListing = await marketplaceService.createListing(data, user);
+      
+      res.status(201).json({
+        success: true,
+        data: newListing
+      });
+    } catch (error) {
+      console.error('Create Listing Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 400 ? 'VALIDATION_ERROR' : 'CREATE_LISTING_FAILED',
+          message: error.message || 'An error occurred while creating listing'
+        }
+      });
+    }
+  }
+  async getListingById(req, res) {
+    try {
+      const { id } = req.params;
+      const listing = await marketplaceService.getListingById(id);
+      
+      res.status(200).json({
+        success: true,
+        data: listing
+      });
+    } catch (error) {
+      console.error('Get Listing by ID Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 404 ? 'NOT_FOUND' : 'FETCH_LISTING_FAILED',
+          message: error.message || 'An error occurred while fetching the listing'
+        }
+      });
+    }
+  }
+  async decodeVin(req, res) {
+    try {
+      const { vin } = req.params;
+      const data = await marketplaceService.decodeVin(vin);
+      
+      res.status(200).json({
+        success: true,
+        data
+      });
+    } catch (error) {
+      console.error('Decode VIN Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 404 ? 'NOT_FOUND' : 'DECODE_VIN_FAILED',
+          message: error.message || 'An error occurred while decoding the VIN'
+        }
+      });
+    }
+  }
+  async getStats(req, res) {
+    try {
+      const stats = await marketplaceService.getGlobalStats();
+      res.status(200).json({ success: true, data: stats });
+    } catch (error) {
+      console.error('Stats Error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch global stats' });
+    }
+  }
+}
+
+module.exports = new MarketplaceController();
