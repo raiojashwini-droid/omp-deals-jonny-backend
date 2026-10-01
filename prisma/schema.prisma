@@ -190,7 +190,7 @@ model Vehicle {
   exterior_color String?
   transmission   String        @default("Automatic")
   lot_status     VehicleStatus @default(AVAILABLE)
-  image_urls     Json          @default("[]")
+  image_urls     Json?
   last_dms_sync  DateTime?
 
   title       String?
@@ -219,7 +219,7 @@ model Vehicle {
 model RolePermission {
   id          String   @id @default(uuid())
   role        Role     @unique
-  permissions Json     @default("{}")
+  permissions Json?
   updatedAt   DateTime @updatedAt
 
   @@map("rolepermission")
