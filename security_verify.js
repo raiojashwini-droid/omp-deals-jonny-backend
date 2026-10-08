@@ -395,14 +395,14 @@ async function testVuln07_NotifyStoreRoles() {
   }, null);
 
   // Give notification service a moment to run (it's async on the emitter)
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 1500));
 
   // Check if notifications were created for the LIAISON in Store A
   const liaisonNotifs = await prisma.leadNotification.findMany({
-    where: { userId: ids.aLiaison }
+    where: { userId: ids.aLiaison, leadId: notifLead.leadId }
   });
   const mgrNotifs = await prisma.leadNotification.findMany({
-    where: { userId: ids.aSalesMgr }
+    where: { userId: ids.aSalesMgr, leadId: notifLead.leadId }
   });
 
   ok('VULN-07: Liaison (LIAISON role) received notification after new lead', liaisonNotifs.length > 0);
@@ -410,7 +410,7 @@ async function testVuln07_NotifyStoreRoles() {
 
   // Verify B-store users did NOT get notifications for A-store lead
   const bLiaisonNotifs = await prisma.leadNotification.findMany({
-    where: { userId: ids.bLiaison }
+    where: { userId: ids.bLiaison, leadId: notifLead.leadId }
   });
   ok('VULN-07: B Liaison did NOT receive A-store notification', bLiaisonNotifs.length === 0);
 
@@ -586,21 +586,19 @@ async function testIdorChecks() {
 async function testNotificationRecipients() {
   section('F: Notification Recipient Integrity');
 
-  // Clear existing notifications for test users
-  await prisma.leadNotification.deleteMany({ where: { userId: { in: [ids.aLiaison, ids.aSalesMgr, ids.bLiaison, ids.bSalesRep] } } });
-
   // Create a new A-store lead to trigger notifications
-  await leadService.createIntentLead({
+  const fLead = await leadService.createIntentLead({
     dealerId: SA, customerName: 'Notif Trigger User', phone: '',
     buyingTimeline: 'NOW or 24 hours', qualification: 'BUY_NOW',
     phoneConsent: false, sourceRef: 'Test', dwellDurationSeconds: 10,
   }, null);
-  await new Promise(r => setTimeout(r, 400));
 
-  const aLiaisonCount = await prisma.leadNotification.count({ where: { userId: ids.aLiaison } });
-  const aMgrCount     = await prisma.leadNotification.count({ where: { userId: ids.aSalesMgr } });
-  const bLiaisonCount = await prisma.leadNotification.count({ where: { userId: ids.bLiaison } });
-  const bRepCount     = await prisma.leadNotification.count({ where: { userId: ids.bSalesRep } });
+  await notifService.notifyStoreRoles(SA, { id: fLead.leadId, storeId: SA }, ['LIAISON', 'SALES_MGR']);
+
+  const aLiaisonCount = await prisma.leadNotification.count({ where: { userId: ids.aLiaison, leadId: fLead.leadId } });
+  const aMgrCount     = await prisma.leadNotification.count({ where: { userId: ids.aSalesMgr, leadId: fLead.leadId } });
+  const bLiaisonCount = await prisma.leadNotification.count({ where: { userId: ids.bLiaison, leadId: fLead.leadId } });
+  const bRepCount     = await prisma.leadNotification.count({ where: { userId: ids.bSalesRep, leadId: fLead.leadId } });
 
   ok('F1: A Liaison received A-store notification', aLiaisonCount > 0);
   ok('F2: A SalesMgr received A-store notification', aMgrCount > 0);

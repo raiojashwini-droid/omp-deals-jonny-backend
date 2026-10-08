@@ -22,12 +22,10 @@ class NotificationService {
       const users = await prisma.user.findMany({
         where: {
           storeId,
-          // VULN-07 FIX: Role is a Prisma enum — filter syntax is `role: { in: roles }`.
-          // Previously `role: { name: { in: roles } }` was invalid and caused silent failure,
-          // meaning NO notifications were ever delivered to Liaisons or Sales Managers.
           role: { in: roles }
         }
       });
+      console.log(`[DEBUG] notifyStoreRoles for store ${storeId}: found ${users.length} users with roles ${roles.join(',')}`);
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
