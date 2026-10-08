@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
@@ -23,16 +24,10 @@ require('./services/notificationService');
 
 // Middleware
 
-
 app.use(cors({
-  origin: [
-    'http://localhost:3001',
-    'http://localhost:3002',
-  ],
+  origin: 'http://localhost:3001',
   credentials: true,
 }));
-
-
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -57,18 +52,27 @@ app.use('/api/v1/executive', executiveRoutes);
 
 // 404 Handler
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'API route not found' });
+  res.status(404).json({
+    success: false,
+    message: 'API route not found'
+  });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);
+
   const status = err.status || 500;
+
   res.status(status).json({
     success: false,
-    message: err.type === 'entity.too.large' ? 'Payload too large (images exceed limit)' : (err.message || 'Internal Server Error'),
+    message:
+      err.type === 'entity.too.large'
+        ? 'Payload too large (images exceed limit)'
+        : (err.message || 'Internal Server Error'),
     stack: err.stack
   });
 });
 
 module.exports = app;
+

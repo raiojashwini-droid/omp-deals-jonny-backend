@@ -387,15 +387,16 @@ async function testVuln06_PrismaImport() {
 async function testVuln07_NotifyStoreRoles() {
   section('VULN-07: notifyStoreRoles Prisma Enum Filter');
 
-  // Create a lead to trigger the notification flow
+  // Create a real lead so the foreign key constraint on leadNotification passes
   const notifLead = await leadService.createIntentLead({
     dealerId: SA, customerName: 'Notif Test User', phone: '',
     buyingTimeline: 'NOW or 24 hours', qualification: 'BUY_NOW',
     phoneConsent: false, sourceRef: 'Test', dwellDurationSeconds: 10,
   }, null);
 
-  // Give notification service a moment to run (it's async on the emitter)
-  await new Promise(r => setTimeout(r, 1500));
+  // Call the service directly to deterministically test the Prisma enum filter
+  // without relying on floating event emitter promises.
+  await notifService.notifyStoreRoles(SA, { id: notifLead.leadId, storeId: SA }, ['LIAISON', 'SALES_MGR']);
 
   // Check if notifications were created for the LIAISON in Store A
   const liaisonNotifs = await prisma.leadNotification.findMany({

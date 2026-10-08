@@ -25,7 +25,6 @@ class NotificationService {
           role: { in: roles }
         }
       });
-      console.log(`[DEBUG] notifyStoreRoles for store ${storeId}: found ${users.length} users with roles ${roles.join(',')}`);
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
