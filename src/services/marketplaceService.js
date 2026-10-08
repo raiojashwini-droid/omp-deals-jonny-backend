@@ -332,18 +332,24 @@ class MarketplaceService {
       engine: vehicle.engine || 'Standard Engine',
       transmission: vehicle.transmission || 'Automatic',
       driveType: 'AWD',
-      kbbBookout: {
-        tradeIn: formatPrice(price * 0.8),
-        privateParty: formatPrice(price * 0.9),
-        dealerRetail: formatPrice(price * 1.05),
-      },
+      kbbBookout: null, // Market pricing is separate and requires AI pricing module
       historyReport: {
-        provider: 'Carfax & VinAudit (NMVTIS)',
-        accidents: '0 Accidents Reported',
-        owners: '1 Single Owner (Personal Lease)',
-        titleStatus: vehicle.titleStatus || 'Clean Title (No salvage/flood brands)',
-        odometerVerified: `${vehicle.mileage?.toLocaleString() || '10,000'} miles (Verified by DMV)`,
-        lastService: 'Dealer Scheduled Maintenance (1,500 mi)',
+        provider: 'OMP Standard VHR',
+        status: 'UNAVAILABLE',
+        message: 'No external VHR provider configured.',
+        titleStatus: vehicle.titleStatus || 'Unknown',
+      },
+      lienAndTitle: {
+        provider: 'OMP Title Search',
+        status: 'UNAVAILABLE',
+        message: 'No external title/lien search provider configured.'
+      },
+      pricing: {
+        provider: 'OMP AI Market Pricing',
+        status: 'UNAVAILABLE',
+        message: 'No external pricing provider configured.',
+        marketPrice: vehicle.marketPrice || null,
+        askingPrice: price
       }
     };
   }

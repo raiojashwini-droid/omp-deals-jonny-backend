@@ -179,7 +179,7 @@ class DealerService {
       store,
       totalSynced: vehicles.length,
       lastSyncTime: `Today at ${timeStr}`,
-      connectedDms: 'DealerSocket API',
+      connectedDms: 'OMP Standard Feed',
       dmsAccount: store.name,
       syncedVehicles,
     };

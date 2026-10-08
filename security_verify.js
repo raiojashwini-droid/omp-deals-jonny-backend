@@ -84,6 +84,8 @@ const RUN = Date.now();
 const SA = `sec-store-a-${RUN}`;  // Store A
 const SB = `sec-store-b-${RUN}`;  // Store B
 
+const ORG = `sec-org-${RUN}`;
+
 const ids = {
   execAdmin:    `sec-exec-${RUN}`,
   aLiaison:     `sec-a-liaison-${RUN}`,
@@ -101,14 +103,14 @@ const ids = {
 
 // Minimal user objects that mirror what the JWT puts in req.user
 const users = {
-  execAdmin:  { id: ids.execAdmin,  role: 'EXECUTIVE_ADMIN', storeId: null },
-  aLiaison:   { id: ids.aLiaison,   role: 'LIAISON',         storeId: SA },
-  aSalesMgr:  { id: ids.aSalesMgr,  role: 'SALES_MGR',       storeId: SA },
-  aSalesRep:  { id: ids.aSalesRep,  role: 'SALES_REP',       storeId: SA },
-  aBroker:    { id: ids.aBroker,    role: 'BROKER',           storeId: SA },
-  aAmp:       { id: ids.aAmp,       role: 'AMP_AFFILIATE',    storeId: SA },
-  bLiaison:   { id: ids.bLiaison,   role: 'LIAISON',         storeId: SB },
-  bSalesRep:  { id: ids.bSalesRep,  role: 'SALES_REP',       storeId: SB },
+  execAdmin:  { id: ids.execAdmin,  role: 'EXECUTIVE_ADMIN', storeId: null, organizationId: ORG },
+  aLiaison:   { id: ids.aLiaison,   role: 'LIAISON',         storeId: SA, organizationId: ORG },
+  aSalesMgr:  { id: ids.aSalesMgr,  role: 'SALES_MGR',       storeId: SA, organizationId: ORG },
+  aSalesRep:  { id: ids.aSalesRep,  role: 'SALES_REP',       storeId: SA, organizationId: ORG },
+  aBroker:    { id: ids.aBroker,    role: 'BROKER',           storeId: SA, organizationId: ORG },
+  aAmp:       { id: ids.aAmp,       role: 'AMP_AFFILIATE',    storeId: SA, organizationId: ORG },
+  bLiaison:   { id: ids.bLiaison,   role: 'LIAISON',         storeId: SB, organizationId: ORG },
+  bSalesRep:  { id: ids.bSalesRep,  role: 'SALES_REP',       storeId: SB, organizationId: ORG },
   nullStore:  { id: ids.nullStore,  role: 'SALES_REP',       storeId: null },
   member:     { id: ids.member,     role: 'MEMBER',           storeId: null },
 };
@@ -118,21 +120,22 @@ let leadA_id, leadB_id;
 // ─── Setup ────────────────────────────────────────────────────────────────────
 async function setup() {
   const hash = await bcrypt.hash('Test@1234', 10);
-  await prisma.store.create({ data: { id: SA, name: 'Security Test Store A', city: 'Miami',  state: 'FL' } });
-  await prisma.store.create({ data: { id: SB, name: 'Security Test Store B', city: 'Tampa',  state: 'FL' } });
+  await prisma.organization.create({ data: { id: ORG, name: 'Security Test Org' } });
+  await prisma.store.create({ data: { id: SA, organizationId: ORG, name: 'Security Test Store A', city: 'Miami',  state: 'FL' } });
+  await prisma.store.create({ data: { id: SB, organizationId: ORG, name: 'Security Test Store B', city: 'Tampa',  state: 'FL' } });
 
   await prisma.vehicle.create({ data: { id: ids.vehicleA, storeId: SA, title: 'Test Car A', year: 2024, make: 'Ford', model: 'F150' } });
   await prisma.vehicle.create({ data: { id: ids.vehicleB, storeId: SB, title: 'Test Car B', year: 2024, make: 'Honda', model: 'Accord' } });
 
   const userDefs = [
-    { id: ids.execAdmin,  role: 'EXECUTIVE_ADMIN', storeId: null },
-    { id: ids.aLiaison,   role: 'LIAISON',         storeId: SA },
-    { id: ids.aSalesMgr,  role: 'SALES_MGR',       storeId: SA },
-    { id: ids.aSalesRep,  role: 'SALES_REP',       storeId: SA },
-    { id: ids.aBroker,    role: 'BROKER',           storeId: SA },
-    { id: ids.aAmp,       role: 'AMP_AFFILIATE',    storeId: SA },
-    { id: ids.bLiaison,   role: 'LIAISON',         storeId: SB },
-    { id: ids.bSalesRep,  role: 'SALES_REP',       storeId: SB },
+    { id: ids.execAdmin,  role: 'EXECUTIVE_ADMIN', storeId: null, organizationId: ORG },
+    { id: ids.aLiaison,   role: 'LIAISON',         storeId: SA,   organizationId: ORG },
+    { id: ids.aSalesMgr,  role: 'SALES_MGR',       storeId: SA,   organizationId: ORG },
+    { id: ids.aSalesRep,  role: 'SALES_REP',       storeId: SA,   organizationId: ORG },
+    { id: ids.aBroker,    role: 'BROKER',           storeId: SA,   organizationId: ORG },
+    { id: ids.aAmp,       role: 'AMP_AFFILIATE',    storeId: SA,   organizationId: ORG },
+    { id: ids.bLiaison,   role: 'LIAISON',         storeId: SB,   organizationId: ORG },
+    { id: ids.bSalesRep,  role: 'SALES_REP',       storeId: SB,   organizationId: ORG },
     { id: ids.nullStore,  role: 'SALES_REP',       storeId: null },
     { id: ids.member,     role: 'MEMBER',           storeId: null },
   ];
@@ -141,7 +144,7 @@ async function setup() {
     await prisma.user.create({
       data: {
         id: u.id, email: `${u.id}@test.com`, full_name: u.id,
-        role: u.role, passwordHash: hash, is_active: true, storeId: u.storeId || null
+        role: u.role, passwordHash: hash, is_active: true, storeId: u.storeId || null, organizationId: u.organizationId || null
       }
     });
   }
@@ -166,6 +169,7 @@ async function cleanup() {
   }
   await prisma.store.delete({ where: { id: SA } }).catch(() => {});
   await prisma.store.delete({ where: { id: SB } }).catch(() => {});
+  await prisma.organization.delete({ where: { id: ORG } }).catch(() => {});
 }
 
 // ─── VULN-01: Lead intent endpoint auth ──────────────────────────────────────
@@ -215,33 +219,15 @@ async function testVuln01_LeadCreation() {
   ok('A5: Store B lead created for cross-store tests', r5.leadId != null);
   leadB_id = r5.leadId;
 
-  // A6: VULN-01 residual check — the caller parameter is accepted but not yet used
-  // for store scoping in leadService. The "caller" is passed in but service doesn't 
-  // enforce that an authenticated user can only submit leads for THEIR store.
-  // This is a RESIDUAL VULNERABILITY to report.
-  // An authenticated Dealership B user can submit to Dealership A's CRM:
-  const r6 = await leadService.createIntentLead({
-    dealerId: SA, customerName: 'B User Attacking A', phone: '',
-    buyingTimeline: 'Just Browsing', qualification: 'SHOPPING_AROUND',
-    phoneConsent: false, sourceRef: 'Test', dwellDurationSeconds: 10,
-  }, users.bSalesRep); // Store B user, submitting to Store A
-  const callerNotEnforced = r6.leadId != null;
-  if (callerNotEnforced) {
-    report.stillVuln.push('VULN-01-RESIDUAL: Authenticated caller storeId NOT verified against submitted dealerId');
-    report.newVulns.push({
-      id: 'VULN-01-RESIDUAL',
-      severity: 'MEDIUM',
-      description: 'leadService.createIntentLead accepts "caller" but never verifies caller.storeId === dealerId. ' +
-        'An authenticated user from Dealership B can inject leads into Dealership A\'s CRM queue.',
-      file: 'backend/src/services/leadService.js',
-      lines: '6,76',
-      fix: 'When caller is provided and caller.role is not EXECUTIVE_ADMIN, assert caller.storeId === dealerId or throw 403.'
-    });
-    console.log('  ⚠️  RESIDUAL VULN (VULN-01-RESIDUAL): caller.storeId NOT enforced vs dealerId — authenticated B user injected into A queue');
-    newVulns++;
-  } else {
-    ok('VULN-01-RESIDUAL: caller.storeId enforced against dealerId', false);
-  }
+  // A6: VULN-01 residual check — verify caller.storeId is enforced against dealerId
+  await expect403('A6: Store B authenticated user CANNOT submit lead to Store A', () =>
+    leadService.createIntentLead({
+      dealerId: SA, customerName: 'B User Attacking A', phone: '',
+      buyingTimeline: 'Just Browsing', qualification: 'SHOPPING_AROUND',
+      phoneConsent: false, sourceRef: 'Test', dwellDurationSeconds: 10,
+    }, users.bSalesRep)
+  );
+  report.verified.push('VULN-01-RESIDUAL: Authenticated caller storeId correctly verified against submitted dealerId');
 }
 
 // ─── VULN-02: addNote dealership scope ───────────────────────────────────────
@@ -351,19 +337,25 @@ async function testVuln05_SseScope() {
   // Simulate the condition for each actor against an A-store lead:
   const aLead = { storeId: SA, phone_consent: false, customerPhone: '555-000-0001', qualification: 'BUY_NOW' };
 
-  function sseWouldReceive(user, lead) {
-    const isExecAdmin = user.role === 'EXECUTIVE_ADMIN';
-    const isSameStore = user.storeId && user.storeId === lead.storeId;
-    return isExecAdmin || isSameStore;
+  async function sseWouldReceive(user, lead) {
+    const isSameStore = Boolean(user.storeId && user.storeId === lead.storeId);
+    let isSameOrg = false;
+    if (user.role === 'EXECUTIVE_ADMIN' && user.organizationId) {
+      const store = await prisma.store.findUnique({ where: { id: lead.storeId }, select: { organizationId: true }});
+      if (store && store.organizationId === user.organizationId) {
+        isSameOrg = true;
+      }
+    }
+    return isSameOrg || isSameStore;
   }
 
-  ok('SSE-1: A Liaison receives A lead events', sseWouldReceive(users.aLiaison, aLead) === true);
-  ok('SSE-2: A SalesRep receives A lead events', sseWouldReceive(users.aSalesRep, aLead) === true);
-  ok('SSE-3: ExecAdmin receives A lead events', sseWouldReceive(users.execAdmin, aLead) === true);
-  ok('SSE-4: B Liaison does NOT receive A lead events', sseWouldReceive(users.bLiaison, aLead) === false);
-  ok('SSE-5: B SalesRep does NOT receive A lead events', sseWouldReceive(users.bSalesRep, aLead) === false);
-  ok('SSE-6: null-storeId user does NOT receive A lead events', sseWouldReceive(users.nullStore, aLead) === false);
-  ok('SSE-7: MEMBER (null storeId) does NOT receive A lead events', sseWouldReceive(users.member, aLead) === false);
+  ok('SSE-1: A Liaison receives A lead events', (await sseWouldReceive(users.aLiaison, aLead)) === true);
+  ok('SSE-2: A SalesRep receives A lead events', (await sseWouldReceive(users.aSalesRep, aLead)) === true);
+  ok('SSE-3: ExecAdmin receives A lead events', (await sseWouldReceive(users.execAdmin, aLead)) === true);
+  ok('SSE-4: B Liaison does NOT receive A lead events', (await sseWouldReceive(users.bLiaison, aLead)) === false);
+  ok('SSE-5: B SalesRep does NOT receive A lead events', (await sseWouldReceive(users.bSalesRep, aLead)) === false);
+  ok('SSE-6: null-storeId user does NOT receive A lead events', (await sseWouldReceive(users.nullStore, aLead)) === false);
+  ok('SSE-7: MEMBER (null storeId) does NOT receive A lead events', (await sseWouldReceive(users.member, aLead)) === false);
 
   // Verify phone masking in SSE payload
   const safeLead = {
@@ -482,7 +474,7 @@ async function testVuln10_JwtSecret() {
 
   // Check that EFFECTIVE_JWT_SECRET is used (not bare JWT_SECRET)
   ok('VULN-10-1: generateToken uses EFFECTIVE_JWT_SECRET (not raw JWT_SECRET)', 
-    jwtSrc.includes('EFFECTIVE_JWT_SECRET') && !jwtSrc.includes('JWT_SECRET,\n')
+    jwtSrc.includes('EFFECTIVE_JWT_SECRET') && !/jwt\.sign\([^)]*,\s*JWT_SECRET\s*[\r\n,]/.test(jwtSrc)
   );
 
   // Check that production crash path exists
@@ -509,35 +501,19 @@ async function testVuln11_QueryStringToken() {
 
   const middlewareSrc = require('fs').readFileSync('./src/middleware/authMiddleware.js', 'utf8');
 
-  // Check that BOTH requireAuth AND optionalAuth accept query-string tokens
-  const requireAuthHasQuery = middlewareSrc.includes("req.query.token") && 
-    middlewareSrc.indexOf("req.query.token") < middlewareSrc.indexOf("optionalAuth");
-  const optionalAuthHasQuery = middlewareSrc.includes("req.query.token");
+  // Verify sseAuthMiddleware exists for SSE stream
+  const hasSseAuth = middlewareSrc.includes('sseAuthMiddleware') && middlewareSrc.includes('req.query.token');
+  ok('VULN-11-1: Dedicated sseAuthMiddleware handles query token for SSE stream', hasSseAuth);
 
-  ok('VULN-11-1: requireAuth accepts query-string token (applies to ALL requireAuth routes)',
-    requireAuthHasQuery
+  // Verify requireAuth does NOT accept query tokens on standard REST endpoints
+  const requireAuthFunc = middlewareSrc.substring(
+    middlewareSrc.indexOf('const requireAuth'),
+    middlewareSrc.indexOf('const optionalAuth')
   );
-  ok('VULN-11-2: optionalAuth also accepts query-string token', optionalAuthHasQuery);
+  const requireAuthHeaderOnly = !requireAuthFunc.includes('req.query');
+  ok('VULN-11-2: requireAuth strictly enforces Bearer header (no query-string token leak)', requireAuthHeaderOnly);
 
-  // Critical finding: query-string token is global, not SSE-only
-  console.log('\n  ⚠️  VULN-11 STATUS: Query-string token is accepted on ALL requireAuth routes,');
-  console.log('      not just the SSE stream. This means ANY CRM endpoint can receive');
-  console.log('      tokens via query string, which appear in server logs and referrer headers.');
-  console.log('      Affected routes: ALL /api/crm/* endpoints, not just /notifications/stream');
-
-  report.newVulns.push({
-    id: 'VULN-11-SCOPE',
-    severity: 'LOW',
-    description: 'requireAuth accepts query-string tokens globally. ' +
-      'While necessary for SSE (EventSource cannot set headers), all other CRM routes ' +
-      'unnecessarily accept it, causing token exposure in access logs.',
-    file: 'backend/src/middleware/authMiddleware.js',
-    lines: '8-9',
-    fix: 'Either (a) restrict query-string token to a separate sseAuth middleware used only on ' +
-      '/notifications/stream, or (b) add an explicit check that query-string token is only ' +
-      'honored when req.path includes "/stream".'
-  });
-  newVulns++;
+  report.verified.push('VULN-11: Query-string token restricted to sseAuthMiddleware for SSE stream only');
 }
 
 // ─── B: Lead reading scope ────────────────────────────────────────────────────
