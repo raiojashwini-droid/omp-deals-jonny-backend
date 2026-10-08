@@ -45,6 +45,54 @@ class MarketplaceController {
       });
     }
   }
+
+  async updateListing(req, res) {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+      const user = req.user;
+
+      const updatedListing = await marketplaceService.updateListing(id, data, user);
+      
+      res.status(200).json({
+        success: true,
+        data: updatedListing
+      });
+    } catch (error) {
+      console.error('Update Listing Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 403 ? 'FORBIDDEN' : 'UPDATE_LISTING_FAILED',
+          message: error.message || 'An error occurred while updating the listing'
+        }
+      });
+    }
+  }
+
+  async deleteListing(req, res) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      await marketplaceService.deleteListing(id, user);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Listing deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete Listing Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 403 ? 'FORBIDDEN' : 'DELETE_LISTING_FAILED',
+          message: error.message || 'An error occurred while deleting the listing'
+        }
+      });
+    }
+  }
+
   async getListingById(req, res) {
     try {
       const { id } = req.params;

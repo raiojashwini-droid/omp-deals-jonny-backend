@@ -11,6 +11,10 @@ const safetyRoutes = require('./routes/safety');
 const aiRoutes = require('./routes/ai');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const permissionsRoutes = require('./routes/permissions');
+const loansRoutes = require('./routes/loans');
+const documentsRoutes = require('./routes/documents');
+const contractsRoutes = require('./routes/contracts');
+const executiveRoutes = require('./routes/executive');
 
 const app = express();
 
@@ -46,6 +50,10 @@ app.use('/api/v1/safety', safetyRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/subscriptions', subscriptionsRoutes);
 app.use('/api/v1/permissions', permissionsRoutes);
+app.use('/api/v1/loans', loansRoutes);
+app.use('/api/v1/documents', documentsRoutes);
+app.use('/api/v1/contracts', contractsRoutes);
+app.use('/api/v1/executive', executiveRoutes);
 
 // 404 Handler
 app.use((req, res) => {

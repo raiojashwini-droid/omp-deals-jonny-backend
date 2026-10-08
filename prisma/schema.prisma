@@ -21,6 +21,7 @@ enum Role {
   AMP_AFFILIATE
   EXECUTIVE_ADMIN
   MEMBER
+  LOAN_OFFICER
 }
 
 enum SubscriptionTier {
@@ -65,10 +66,26 @@ enum ESignStatus {
   FUNDED
 }
 
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum TicketStatus {
   OPEN
   IN_PROGRESS
   COMPLETED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum LeadQualification {
@@ -84,12 +101,22 @@ enum AssignmentAction {
   RELEASED
 }
 
+enum LoanStatus {
+  PENDING
+  UNDERWRITING
+  APPROVED
+  FUNDED
+  REJECTED
+}
+
 // -----------------------------------------------------------------------------
 // MODELS
 // -----------------------------------------------------------------------------
 
 model Store {
   id              String  @id @default(uuid())
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   name            String
   dba             String?
   street_address  String?
@@ -102,6 +129,9 @@ model Store {
   is_pilot_dealer Boolean @default(false)
   activeUnits     Int     @default(0)
 
+  licenseStatus    String?
+  licenseExpiresAt DateTime?
+
   users          User[]
   vehicles       Vehicle[]
   deals          Deal[]
@@ -109,6 +139,8 @@ model Store {
   roiReports     ROIReport[]
   leads          Lead[]
   trackingEvents TrackingEvent[]
+  documents      DealerDocument[]
+  contracts      DealershipContract[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -116,10 +148,26 @@ model Store {
   @@map("store")
 }
 
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  
+  stores    Store[]
+  users     User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("organization")
+}
+
 model User {
   id      String  @id @default(uuid())
   storeId String?
   store   Store?  @relation(fields: [storeId], references: [id])
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   role         Role    @default(GUEST)
   roleName     String?
@@ -155,6 +203,11 @@ model User {
   assignmentsReceived LeadAssignmentLog[] @relation("AssignedToUser")
   transportBookings   TransportBooking[]
   leadMessages        LeadMessage[]
+  loanApplications    LoanApplication[]
+  documentsUploaded   DealerDocument[] @relation("UploadedDocuments")
+  documentsReviewed   DealerDocument[] @relation("ReviewedDocuments")
+  contractsSigned     DealershipContract[] @relation("SignedContracts")
+  contractsReviewed   DealershipContract[] @relation("ReviewedContracts")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -607,4 +660,98 @@ model TransportBooking {
   createdAt      DateTime @default(now())
 
   @@map("transportbooking")
+}
+
+// -----------------------------------------------------------------------------
+// OAL NETWORK (LOANS)
+// -----------------------------------------------------------------------------
+
+model LoanCategory {
+  id           String            @id @default(uuid())
+  name         String
+  creditType   String
+  approvalTime String
+  description  String
+  iconName     String
+  isActive     Boolean           @default(true)
+  applications LoanApplication[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("loancategory")
+}
+
+model LoanApplication {
+  id              String        @id @default(uuid())
+  categoryId      String?
+  category        LoanCategory? @relation(fields: [categoryId], references: [id])
+  loanType        String?
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  applicantName   String
+  email           String
+  phone           String
+  businessName    String?
+  requestedAmount Float
+  status          LoanStatus   @default(PENDING)
+  kycConsent      Boolean      @default(false)
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("loanapplication")
+}
+
+// -----------------------------------------------------------------------------
+// DEALERSHIP DOCUMENTS
+// -----------------------------------------------------------------------------
+
+model DealerDocument {
+  id              String         @id @default(uuid())
+  storeId         String
+  store           Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  uploadedById    String
+  uploadedBy      User           @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  documentType    String         // e.g., 'ID', 'DEALER_LICENSE', 'INSURANCE'
+  filePath        String
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  status          DocumentStatus @default(PENDING)
+  rejectionReason String?
+  
+  reviewerId      String?
+  reviewer        User?          @relation("ReviewedDocuments", fields: [reviewerId], references: [id])
+  reviewedAt      DateTime?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("dealerdocument")
+}
+
+model DealershipContract {
+  id                String         @id @default(uuid())
+  storeId           String
+  store             Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  liaisonId         String
+  liaison           User           @relation("SignedContracts", fields: [liaisonId], references: [id])
+  status            ContractStatus @default(DRAFT)
+  templateName      String
+  
+  unsignedPdfUrl    String?
+  signedPdfUrl      String?
+  signatureDataUrl  String?      @db.Text
+  
+  signedAt          DateTime?
+  
+  reviewerId        String?
+  reviewer          User?          @relation("ReviewedContracts", fields: [reviewerId], references: [id])
+  reviewedAt        DateTime?
+  rejectionReason   String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@map("dealershipcontract")
 }

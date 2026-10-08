@@ -128,6 +128,22 @@ class MarketplaceService {
       });
     }
 
+    let storeIdToUse = user ? user.storeId : null;
+
+    if (user && user.role === 'EXECUTIVE_ADMIN' && data.storeId) {
+      const store = await prisma.store.findFirst({
+        where: { id: data.storeId, organizationId: user.organizationId }
+      });
+      if (!store) {
+        throw { status: 403, message: 'Unauthorized store' };
+      }
+      storeIdToUse = data.storeId;
+    } else if (user && user.role === 'EXECUTIVE_ADMIN' && !data.storeId) {
+      // If executive doesn't specify, we can't reliably guess which store if they have multiple.
+      // But we will allow null (private seller) or their primary storeId if set.
+      storeIdToUse = user.storeId || null;
+    }
+
     const newVehicle = await prisma.vehicle.create({
       data: {
         title: data.title,
@@ -137,7 +153,7 @@ class MarketplaceService {
         image_urls: JSON.stringify(processedPhotos),
         lot_status: 'AVAILABLE',
         posterId: user ? user.id : null,
-        storeId: user ? user.storeId : null
+        storeId: storeIdToUse
       }
     });
 
@@ -150,6 +166,67 @@ class MarketplaceService {
       image: (data.photos && data.photos.length > 0) ? data.photos[0] : null,
       listingNumber: `OMP-${newVehicle.id.substring(0, 5).toUpperCase()}`
     };
+  }
+
+  async verifyVehicleAccess(vehicleId, user) {
+    if (!user) return false;
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: { store: true }
+    });
+    if (!vehicle) return false;
+
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (vehicle.store && vehicle.store.organizationId === user.organizationId) {
+        return true;
+      }
+      return false; // Can't edit private seller items unless they posted it?
+    }
+    
+    // Normal dealer user
+    if (vehicle.storeId && vehicle.storeId === user.storeId) {
+      return true;
+    }
+    // Owner fallback
+    if (vehicle.posterId === user.id) {
+      return true;
+    }
+    return false;
+  }
+
+  async updateListing(id, data, user) {
+    const hasAccess = await this.verifyVehicleAccess(id, user);
+    if (!hasAccess) {
+      throw { status: 403, message: 'Unauthorized to modify this vehicle' };
+    }
+
+    const priceNum = data.price ? parseFloat(data.price.replace(/[^0-9.]/g, '')) : undefined;
+
+    const updateData = {};
+    if (data.title) updateData.title = data.title;
+    if (data.price) updateData.selling_price = isNaN(priceNum) ? 0 : priceNum;
+    if (data.category) updateData.category = data.category;
+    if (data.location) updateData.location = data.location;
+    if (data.lot_status) updateData.lot_status = data.lot_status;
+    
+    const updatedVehicle = await prisma.vehicle.update({
+      where: { id },
+      data: updateData
+    });
+
+    return updatedVehicle;
+  }
+
+  async deleteListing(id, user) {
+    const hasAccess = await this.verifyVehicleAccess(id, user);
+    if (!hasAccess) {
+      throw { status: 403, message: 'Unauthorized to delete this vehicle' };
+    }
+
+    await prisma.vehicle.delete({
+      where: { id }
+    });
+    return { success: true };
   }
 
   async getListingById(id) {

@@ -35,12 +35,19 @@ class LeadService {
     // VULN-01-RESIDUAL FIX: When an authenticated user submits a lead, their storeId
     // must match the target dealerId.  Rules:
     //   • caller === null → unauthenticated marketplace consumer → allowed (End User flow)
-    //   • caller.role === 'EXECUTIVE_ADMIN' → cross-store access allowed by design
+    //   • caller.role === 'EXECUTIVE_ADMIN' → cross-store access allowed if dealerId belongs to their organization
     //   • all other authenticated callers → MUST own the dealership they are submitting to
     //     A null storeId on an authenticated user also fails this check (cannot own any store).
-    if (caller !== null && caller.role !== 'EXECUTIVE_ADMIN' && dealerId) {
-      if (!caller.storeId || caller.storeId !== dealerId) {
-        throw { status: 403, message: 'Access denied: You may only submit leads for your own dealership.' };
+    if (caller !== null && dealerId) {
+      if (caller.role === 'EXECUTIVE_ADMIN') {
+        const store = await prisma.store.findUnique({ where: { id: dealerId }, select: { organizationId: true } });
+        if (!caller.organizationId || store?.organizationId !== caller.organizationId) {
+          throw { status: 403, message: 'Access denied: You may only submit leads for dealerships in your organization.' };
+        }
+      } else {
+        if (!caller.storeId || caller.storeId !== dealerId) {
+          throw { status: 403, message: 'Access denied: You may only submit leads for your own dealership.' };
+        }
       }
     }
 

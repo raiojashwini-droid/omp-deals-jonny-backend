@@ -10,6 +10,15 @@ class CrmController {
       
       const data = await crmService.getLeads(filters, user);
       
+      // Server-side phone consent masking
+      if (data && data.leads) {
+        data.leads = data.leads.map(lead => ({
+          ...lead,
+          customerPhone: lead.phone_consent ? lead.customerPhone : null,
+          phone: lead.phone_consent ? (lead.phone || lead.customerPhone) : null,
+        }));
+      }
+      
       res.status(200).json({ success: true, ...data });
     } catch (error) {
       console.error('Get Leads Error:', error);
@@ -41,6 +50,15 @@ class CrmController {
       const user = req.user;
 
       const result = await crmService.assignLead(id, assignmentData, user);
+      
+      // Server-side phone consent masking
+      if (result && result.lead) {
+        result.lead.customerPhone = result.lead.phone_consent ? result.lead.customerPhone : null;
+        if (result.lead.phone !== undefined) {
+          result.lead.phone = result.lead.phone_consent ? (result.lead.phone || result.lead.customerPhone) : null;
+        }
+      }
+      
       res.status(200).json({ success: true, ...result });
     } catch (error) {
       console.error('Assign Lead Error:', error);
@@ -123,14 +141,19 @@ class CrmController {
 
     const user = req.user;
 
-    const onNewLead = (lead) => {
+    const onNewLead = async (lead) => {
       // VULN-05 FIX: Previously `!user.storeId` caused unscoped users (GUEST, MEMBER,
       // unassigned BROKERs/AMPs) to receive every new lead from every store.
-      // Now only EXECUTIVE_ADMIN (cross-store by design) or exact storeId match receive events.
-      const isExecAdmin = user.role === 'EXECUTIVE_ADMIN';
       const isSameStore = user.storeId && user.storeId === lead.storeId;
+      let isSameOrg = false;
+      if (user.role === 'EXECUTIVE_ADMIN' && user.organizationId) {
+        const store = await require('../config/prisma').store.findUnique({ where: { id: lead.storeId }, select: { organizationId: true }});
+        if (store && store.organizationId === user.organizationId) {
+          isSameOrg = true;
+        }
+      }
 
-      if (!isExecAdmin && !isSameStore) return;
+      if (!isSameOrg && !isSameStore) return;
 
       const labels = {
         'BUY_NOW': 'BUY NOW (Within 24hrs)',
@@ -221,6 +244,15 @@ class CrmController {
       const user = req.user;
 
       const result = await crmService.updateLeadStatus(id, status, user);
+      
+      // Server-side phone consent masking
+      if (result && result.lead) {
+        result.lead.customerPhone = result.lead.phone_consent ? result.lead.customerPhone : null;
+        if (result.lead.phone !== undefined) {
+          result.lead.phone = result.lead.phone_consent ? (result.lead.phone || result.lead.customerPhone) : null;
+        }
+      }
+      
       res.status(200).json(result);
     } catch (error) {
       console.error('Update Lead Status Error:', error);

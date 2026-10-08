@@ -5,14 +5,20 @@ class CrmService {
     const { status, dealerId } = filters;
     const where = {};
 
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId) {
+        return { totalLeads: 0, buyNowCount: 0, leads: [] };
+      }
+      where.store = { organizationId: user.organizationId };
+      if (dealerId) {
+        where.storeId = dealerId;
+      }
+    } else {
       if (!user.storeId) {
         // No store association — return empty (GUEST, MEMBER, unscoped users)
         return { totalLeads: 0, buyNowCount: 0, leads: [] };
       }
       where.storeId = user.storeId;
-    } else if (dealerId) {
-      where.storeId = dealerId;
     }
 
     if (status) where.status = status;
@@ -179,12 +185,17 @@ class CrmService {
   }
 
   async getStaff(user) {
+    if (user.role === 'EXECUTIVE_ADMIN' && !user.organizationId) {
+      throw { status: 403, message: 'Executive is not associated with an organization' };
+    }
     if (user.role !== 'EXECUTIVE_ADMIN' && !user.storeId) {
       throw { status: 403, message: 'User is not associated with a dealership' };
     }
 
     const where = {};
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      where.store = { organizationId: user.organizationId };
+    } else {
       where.storeId = user.storeId;
     }
 
@@ -221,22 +232,30 @@ class CrmService {
     const { assigneeUserId, liaisonNotes } = assignmentData;
     if (!assigneeUserId) throw { status: 400, message: 'assigneeUserId is required' };
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
     // VULN-03 FIX: Inverted guard — non-admin users MUST have a storeId AND it must match.
     // Previously `user.storeId &&` allowed null-storeId users to skip the check entirely.
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot assign a lead outside your dealership' };
       }
     }
 
-    const assignee = await prisma.user.findUnique({ where: { id: assigneeUserId } });
+    const assignee = await prisma.user.findUnique({ where: { id: assigneeUserId }, include: { store: { select: { organizationId: true } } } });
     if (!assignee) throw { status: 404, message: 'Assignee user not found' };
 
     // Assignee must also belong to the same store (or exec admin can assign cross-store)
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!assignee.store?.organizationId || assignee.store.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Assignee does not belong to your organization' };
+      }
+    } else {
       if (!assignee.storeId || assignee.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot assign a lead to a representative outside your dealership' };
       }
@@ -282,11 +301,15 @@ class CrmService {
       throw { status: 403, message: 'Cannot log calls on behalf of another rep' };
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
     // VULN-04 FIX: Same inverted guard as assignLead — null storeId users cannot log calls.
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot log calls for a lead outside your dealership' };
       }
@@ -325,12 +348,16 @@ class CrmService {
       throw { status: 400, message: 'Note content is required' };
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
     // VULN-02 FIX: addNote was missing dealership scope enforcement.
     // Any CRM-role user could add notes to any lead by knowing the lead UUID.
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot add notes to a lead outside your dealership' };
       }
@@ -352,10 +379,14 @@ class CrmService {
   }
 
   async getLeadMessages(leadId, user) {
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
-    if (user.role !== 'EXECUTIVE_ADMIN' && user.role !== 'GUEST') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else if (user.role !== 'GUEST') {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied to this lead\'s messages' };
       }
@@ -379,10 +410,14 @@ class CrmService {
     const { content } = messageData;
     if (!content) throw { status: 400, message: 'Message content is required' };
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
-    if (user.role !== 'EXECUTIVE_ADMIN' && user.role !== 'GUEST') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else if (user.role !== 'GUEST') {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot send messages to a lead outside your dealership' };
       }
@@ -413,10 +448,14 @@ class CrmService {
       throw { status: 400, message: 'Status is required' };
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { store: { select: { organizationId: true } } } });
     if (!lead) throw { status: 404, message: 'Lead not found' };
 
-    if (user.role !== 'EXECUTIVE_ADMIN') {
+    if (user.role === 'EXECUTIVE_ADMIN') {
+      if (!user.organizationId || lead.store?.organizationId !== user.organizationId) {
+        throw { status: 403, message: 'Access denied: Lead does not belong to your organization' };
+      }
+    } else {
       if (!user.storeId || lead.storeId !== user.storeId) {
         throw { status: 403, message: 'Access denied: You cannot update status of a lead outside your dealership' };
       }
