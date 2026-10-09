@@ -140,7 +140,7 @@ class DealerService {
   async getDmsFeedData(storeId) {
     const store = await prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, activeUnits: true, isVerifiedDealer: true }
+      select: { id: true, name: true, dba: true, city: true, state: true, dms_provider: true, activeUnits: true, isVerifiedDealer: true }
     });
     if (!store) throw { status: 404, message: 'Store not found' };
 

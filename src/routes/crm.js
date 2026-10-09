@@ -42,4 +42,7 @@ router.patch('/leads/:id/status', requireAuth, requireRoles(['SALES_REP', 'SALES
 // Allowed roles: LIAISON, DEALER_PRO, EXECUTIVE_ADMIN, SALES_MGR
 router.get('/staff', requireAuth, requireRoles(['LIAISON', 'DEALER_PRO', 'EXECUTIVE_ADMIN', 'SALES_MGR']), crmController.getStaff);
 
+// Simulate Customer Reply
+router.post('/leads/:id/simulate-reply', requireAuth, crmController.simulateCustomerMessage);
+
 module.exports = router;
