@@ -7,6 +7,9 @@ const { requireAuth, requireRoles } = require('../middleware/authMiddleware');
 // Allowed roles: SALES_MGR, DEALER_PRO, EXECUTIVE_ADMIN, SALES_REP, LIAISON, BROKER
 router.post('/calculate', requireAuth, requireRoles(['SALES_MGR', 'DEALER_PRO', 'EXECUTIVE_ADMIN', 'SALES_REP', 'LIAISON', 'BROKER']), deskingController.calculateDeal);
 
+// Calculate Reverse (Payment-First) Deal
+router.post('/calculate-reverse', requireAuth, requireRoles(['SALES_MGR', 'DEALER_PRO', 'EXECUTIVE_ADMIN', 'SALES_REP', 'LIAISON', 'BROKER']), deskingController.calculateReverse);
+
 // Get Deal details for E-Sign
 router.get('/deals/:id', requireAuth, deskingController.getDeal);
 

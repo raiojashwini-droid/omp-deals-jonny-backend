@@ -78,11 +78,37 @@ class LeadService {
       }
     }
 
+    // Determine exact LeadQualification Enum based on requirements
+    let mappedQualification = 'SHOPPING_AROUND';
+    if (buyingTimeline === 'NOW or 24 hours') mappedQualification = 'BUY_NOW';
+    else if (buyingTimeline === 'Within 2-5 days') mappedQualification = 'BUYER_SHOPPING_AROUND';
+    else if (buyingTimeline === '1 week') mappedQualification = 'TAKING_TIME';
+    else if (buyingTimeline === 'Just Browsing') mappedQualification = 'SHOPPING_AROUND';
+
+    // NEW LEAD Check (Created within last 24 hours)
+    let isNewLeadAccount = false;
+    if (caller && caller.createdAt) {
+      const hoursSinceCreation = (new Date() - new Date(caller.createdAt)) / (1000 * 60 * 60);
+      if (hoursSinceCreation <= 24) {
+        isNewLeadAccount = true;
+        // The New Lead Notification Should display for 24 hours... 
+        // We can set it as NEW_LEAD unless they actively explicitly set BUY_NOW
+        if (mappedQualification !== 'BUY_NOW') {
+          mappedQualification = 'NEW_LEAD';
+        }
+      }
+    }
+
+    // If caller explicitly provided a qualification in data, prefer that
+    if (data.qualification) {
+      mappedQualification = data.qualification;
+    }
+
     const leadData = {
       customerName,
       customerPhone: phone || null,
       buying_timeline: buyingTimeline,
-      qualification: data.qualification || null,
+      qualification: mappedQualification,
       is_buy_now: isBuyNow,
       phone_consent: Boolean(phoneConsent),
       dwell_duration_seconds: dwellDurationSeconds || 10,

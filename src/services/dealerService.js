@@ -16,7 +16,12 @@ class DealerService {
         state: true,
         zip: true,
         phone: true,
-        activeUnits: true
+        activeUnits: true,
+        isVerifiedDealer: true,
+        chatEnabled: true,
+        clickToCallEnabled: true,
+        bhphEnabled: true,
+        advertisingTier: true
       }
     });
 
@@ -55,7 +60,9 @@ class DealerService {
         badge: v.lot_status === 'AVAILABLE' ? 'GREAT DEAL' : v.lot_status,
         engine: 'Standard Engine', // mock fallback
         drivetrain: 'RWD', // mock fallback
-        stock: v.id.substring(0, 6).toUpperCase()
+        stock: v.id.substring(0, 6).toUpperCase(),
+        carfaxUrl: v.carfaxUrl,
+        isPromoted: v.isPromoted
       };
     });
 
@@ -133,7 +140,7 @@ class DealerService {
   async getDmsFeedData(storeId) {
     const store = await prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, activeUnits: true }
+      select: { id: true, name: true, activeUnits: true, isVerifiedDealer: true }
     });
     if (!store) throw { status: 404, message: 'Store not found' };
 
@@ -167,7 +174,9 @@ class DealerService {
         mileage: v.mileage ? `${v.mileage.toLocaleString()} mi` : 'N/A',
         dmsStatus: v.lot_status === 'AVAILABLE' ? 'Active on Lot' : v.lot_status === 'PENDING_SALE' ? 'Sale Pending' : v.lot_status,
         feedSyncStatus: v.lot_status === 'SOLD' ? 'Sync Paused' : 'Synced',
-        carfaxAttached: !!v.vin,
+        carfaxAttached: !!v.vin || !!v.carfaxUrl,
+        carfaxUrl: v.carfaxUrl,
+        isPromoted: v.isPromoted,
         lastUpdated: updatedAgo,
       };
     });
@@ -193,6 +202,28 @@ class DealerService {
       success: true,
       message: 'Sync completed',
       lastSyncTime: `Today at ${timeStr}`,
+    };
+  }
+
+  async updateVerifiedSettings(storeId, settings) {
+    if (!storeId) throw { status: 400, message: 'Store ID is required' };
+    
+    // settings could include: isVerifiedDealer, chatEnabled, clickToCallEnabled, bhphEnabled, advertisingTier
+    const updateData = {};
+    if (settings.isVerifiedDealer !== undefined) updateData.isVerifiedDealer = settings.isVerifiedDealer;
+    if (settings.chatEnabled !== undefined) updateData.chatEnabled = settings.chatEnabled;
+    if (settings.clickToCallEnabled !== undefined) updateData.clickToCallEnabled = settings.clickToCallEnabled;
+    if (settings.bhphEnabled !== undefined) updateData.bhphEnabled = settings.bhphEnabled;
+    if (settings.advertisingTier !== undefined) updateData.advertisingTier = settings.advertisingTier;
+
+    const store = await prisma.store.update({
+      where: { id: storeId },
+      data: updateData
+    });
+
+    return {
+      success: true,
+      store
     };
   }
 }

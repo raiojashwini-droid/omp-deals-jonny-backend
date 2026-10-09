@@ -21,6 +21,26 @@ class DeskingController {
       });
     }
   }
+  calculateReverse(req, res) {
+    try {
+      const data = req.body;
+      const result = deskingService.calculateReverseDeal(data);
+      
+      res.status(200).json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('Reverse Desking Calculate Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 400 ? 'VALIDATION_ERROR' : 'CALCULATION_FAILED',
+          message: error.message || 'An error occurred during reverse deal calculation'
+        }
+      });
+    }
+  }
 
   async getDeal(req, res) {
     try {

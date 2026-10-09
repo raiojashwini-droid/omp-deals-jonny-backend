@@ -114,6 +114,7 @@ enum LoanStatus {
 // -----------------------------------------------------------------------------
 
 model Store {
+  reconditioningOrders ReconditioningOrder[]
   id              String  @id @default(uuid())
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id])
@@ -128,6 +129,13 @@ model Store {
   dms_account_id  String?
   is_pilot_dealer Boolean @default(false)
   activeUnits     Int     @default(0)
+
+  // Verified Auto Dealer Features
+  isVerifiedDealer   Boolean @default(false)
+  chatEnabled        Boolean @default(false)
+  clickToCallEnabled Boolean @default(false)
+  bhphEnabled        Boolean @default(false)
+  advertisingTier    String? @default("STANDARD") // STANDARD, ADVANCED, PREMIUM
 
   licenseStatus    String?
   licenseExpiresAt DateTime?
@@ -149,11 +157,17 @@ model Store {
 }
 
 model Organization {
+  integrationSettings IntegrationSetting[]
+  teamInvitations TeamInvitation[]
+  phoneSetting PhoneSetting?
+  websiteSettings WebsiteSetting?
+  reconditioningOrders ReconditioningOrder[]
   id        String   @id @default(uuid())
   name      String
   
   stores    Store[]
   users     User[]
+  verification OrganizationVerification?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -228,6 +242,9 @@ model UserSubscription {
 }
 
 model Vehicle {
+  vehicleMedia VehicleMedia[]
+  publishing VehiclePublishing?
+  reconditioningOrders ReconditioningOrder[]
   id      String  @id @default(uuid())
   storeId String?
   store   Store?  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -252,6 +269,8 @@ model Vehicle {
   truYou      Boolean @default(false)
   marketPrice Float?
   titleStatus String?
+  carfaxUrl   String?
+  isPromoted  Boolean @default(false)
 
   posterId String?
   poster   User?   @relation("PostedVehicles", fields: [posterId], references: [id])
@@ -383,6 +402,7 @@ model SalesNote {
 }
 
 model Deal {
+  paymentInstallments PaymentInstallment[]
   id      String @id @default(uuid())
   storeId String
   store   Store  @relation(fields: [storeId], references: [id])
@@ -500,6 +520,8 @@ model Expense {
   store    Store    @relation(fields: [storeId], references: [id])
   category String
   amount   Float
+  description String?
+  receiptUrl String?
   date     DateTime @default(now())
 
   @@map("expense")
@@ -754,4 +776,167 @@ model DealershipContract {
   updatedAt         DateTime       @updatedAt
 
   @@map("dealershipcontract")
+}
+
+model OrganizationVerification {
+  id              String   @id @default(uuid())
+  organizationId  String   @unique
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  status          String   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  
+  legalName       String?
+  businessType    String?
+  registrationNo  String?
+  taxId           String?
+  
+  addressStreet   String?
+  addressCity     String?
+  addressState    String?
+  addressZip      String?
+  
+  primaryContact  String?
+  contactEmail    String?
+  contactPhone    String?
+  
+  reviewerId      String?
+  reviewedAt      DateTime?
+  rejectionReason String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("organization_verification")
+}
+
+model ReconditioningOrder {
+  id              String   @id @default(uuid())
+  vehicleId       String
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id])
+  
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+
+  description     String   @db.Text
+  vendor          String?
+  estimatedCost   Float    @default(0)
+  actualCost      Float    @default(0)
+  status          String   @default("OPEN") // DRAFT, OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("reconditioning_order")
+}
+
+model WebsiteSetting {
+  id              String   @id @default(uuid())
+  organizationId  String   @unique
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  siteName        String?
+  contactEmail    String?
+  contactPhone    String?
+  theme           String   @default("light")
+  primaryColor    String?
+  domain          String?  @unique
+  isPublished     Boolean  @default(false)
+  
+  seoTitle        String?
+  seoDescription  String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model VehicleMedia {
+  id              String   @id @default(uuid())
+  vehicleId       String
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  mediaType       String   // "IMAGE" or "VIDEO"
+  url             String
+  isAiEnhanced    Boolean  @default(false)
+  isLiveStream    Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model VehiclePublishing {
+  id              String   @id @default(uuid())
+  vehicleId       String   @unique
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  status          String   @default("DRAFT") // DRAFT, PUBLISHED, FAILED
+  providerId      String?  // External ID if published
+  lastPublishedAt DateTime?
+  errorLogs       String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PhoneSetting {
+  id              String   @id @default(uuid())
+  organizationId  String   @unique
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  isEnabled       Boolean  @default(false)
+  timezone        String   @default("America/New_York")
+  greeting        String?
+  fallbackPhone   String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PaymentInstallment {
+  id              String   @id @default(uuid())
+  dealId          String
+  deal            Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  
+  amountDue       Float
+  dueDate         DateTime
+  status          String   @default("SCHEDULED") // SCHEDULED, PAID, OVERDUE
+  paidDate        DateTime?
+  reference       String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model IntegrationSetting {
+  id              String   @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  provider        String   // QUICKBOOKS, DESKMANAGER
+  isConnected     Boolean  @default(false)
+  lastSyncAt      DateTime?
+  syncStatus      String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([organizationId, provider])
+}
+
+model TeamInvitation {
+  id              String   @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  email           String
+  role            String
+  tokenHash       String   @unique
+  expiresAt       DateTime
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REVOKED
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

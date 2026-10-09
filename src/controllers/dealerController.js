@@ -71,6 +71,21 @@ class DealerController {
       });
     }
   }
+
+  async updateVerifiedSettings(req, res) {
+    try {
+      const storeId = req.user?.storeId || req.params.storeId || 'auto-money-fl';
+      const settings = req.body;
+      const result = await dealerService.updateVerifiedSettings(storeId, settings);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Update Settings Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: { code: 'SETTINGS_UPDATE_FAILED', message: error.message || 'Failed to update dealer settings' }
+      });
+    }
+  }
 }
 
 module.exports = new DealerController();

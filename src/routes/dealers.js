@@ -15,4 +15,7 @@ router.get('/dms-feed', requireAuth, dealerController.getDmsFeedData);
 // Force sync now
 router.post('/dms-feed/sync', requireAuth, dealerController.forceSyncNow);
 
+// Update Verified Dealer Settings
+router.patch('/verified-settings', requireAuth, dealerController.updateVerifiedSettings);
+
 module.exports = router;

@@ -111,6 +111,62 @@ class DeskingService {
     };
   }
 
+  calculateReverseDeal(data) {
+    const {
+      targetMonthlyPayment,
+      downPayment = 0,
+      tradeAllowance = 0,
+      tradePayoff = 0,
+      termMonths = 60,
+      apr = 6.99,
+      docFee = 899,
+      taxRatePercent = 6.0
+    } = data;
+
+    if (!targetMonthlyPayment || targetMonthlyPayment <= 0) {
+      throw { status: 400, message: 'Valid targetMonthlyPayment is required' };
+    }
+
+    if (![24, 36, 48, 60, 72, 84].includes(termMonths)) {
+      throw { status: 400, message: 'Invalid termMonths. Allowed values: 24, 36, 48, 60, 72, 84.' };
+    }
+
+    // 1. Calculate max amount financed based on target payment
+    const monthlyRate = apr / 100 / 12;
+    let maxAmountFinanced = 0;
+    
+    if (apr > 0) {
+      // P = (PMT * (1 - (1 + r)^-n)) / r
+      maxAmountFinanced = (targetMonthlyPayment * (1 - Math.pow(1 + monthlyRate, -termMonths))) / monthlyRate;
+    } else {
+      maxAmountFinanced = targetMonthlyPayment * termMonths;
+    }
+
+    // 2. Reverse calculate selling price
+    // AmountFinanced = Price + DocFee + Tax - NetTrade - DownPayment
+    // TaxableAmount = Price - TradeAllowance
+    // Tax = TaxableAmount * (TaxRate / 100) = (Price - TradeAllowance) * (TaxRate / 100)
+    // AmountFinanced = Price + DocFee + (Price - TradeAllowance) * (TaxRate / 100) - (TradeAllowance - TradePayoff) - DownPayment
+    // AmountFinanced = Price * (1 + TaxRate/100) - TradeAllowance * (TaxRate/100) + DocFee - TradeAllowance + TradePayoff - DownPayment
+    // AmountFinanced = Price * (1 + TaxRate/100) + DocFee - TradeAllowance * (1 + TaxRate/100) + TradePayoff - DownPayment
+    
+    // Price * (1 + TaxRate/100) = AmountFinanced - DocFee + TradeAllowance * (1 + TaxRate/100) - TradePayoff + DownPayment
+    // Price = (AmountFinanced - DocFee + TradeAllowance * (1 + TaxRate/100) - TradePayoff + DownPayment) / (1 + TaxRate/100)
+    
+    const taxMultiplier = 1 + (taxRatePercent / 100);
+    const maxSellingPrice = (maxAmountFinanced - docFee + (tradeAllowance * taxMultiplier) - tradePayoff + downPayment) / taxMultiplier;
+
+    return {
+      maxSellingPrice: Number(maxSellingPrice.toFixed(2)),
+      maxAmountFinanced: Number(maxAmountFinanced.toFixed(2)),
+      targetMonthlyPayment,
+      termMonths,
+      apr,
+      downPayment,
+      netTrade: Number((tradeAllowance - tradePayoff).toFixed(2))
+    };
+  }
+
   async getDeal(dealId) {
     const deal = await prisma.deal.findUnique({
       where: { id: dealId },
