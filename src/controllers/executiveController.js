@@ -377,8 +377,7 @@ class ExecutiveController {
       }
 
       // Genuine provider check
-      // Bypass AIPG_PROVIDER_KEY check for simulation });
-      }
+      // Bypass AIPG_PROVIDER_KEY check for simulation
 
       // If configured, process image via AI background replacement
       res.json({ success: true, data: { status: 'UPLOADED_AND_PROCESSING' } });
@@ -388,8 +387,7 @@ class ExecutiveController {
   async getPhotoGeniusStatus(req, res) {
     try {
        // Return unavailable/not configured state if no provider
-       // Bypass AIPG_PROVIDER_KEY check for simulation });
-       }
+       // Bypass AIPG_PROVIDER_KEY check for simulation
        res.json({ success: true, data: { isConfigured: true } });
     } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
