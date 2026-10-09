@@ -39,7 +39,7 @@ class ExecutiveController {
       let requestedStoreIds = [];
       if (storeIds) {
         if (typeof storeIds === 'string') {
-          requestedStoreIds = storeIds.split(',').map(id => id.trim()).filter(id => id);
+          requestedStoreIds = storeIds.split(',').map(id => id.trim()).filter(id => id && id !== 'all');
         } else if (Array.isArray(storeIds)) {
           requestedStoreIds = storeIds;
         }
