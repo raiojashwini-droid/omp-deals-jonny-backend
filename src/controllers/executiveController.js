@@ -294,9 +294,7 @@ class ExecutiveController {
       // Since it's not actually configured in this env, we hit the 503 above cleanly.
       
       res.json({ success: true, data: { status: 'PENDING' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async requestTitleSearch(req, res) {
@@ -315,9 +313,7 @@ class ExecutiveController {
       }
 
       res.json({ success: true, data: { status: 'PENDING' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async requestMarketPricing(req, res) {
@@ -336,9 +332,7 @@ class ExecutiveController {
       }
 
       res.json({ success: true, data: { status: 'PENDING' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
 
@@ -360,9 +354,7 @@ class ExecutiveController {
 
       // If configured, process image via AI background replacement
       res.json({ success: true, data: { status: 'UPLOADED_AND_PROCESSING' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getPhotoGeniusStatus(req, res) {
@@ -372,9 +364,7 @@ class ExecutiveController {
          return res.json({ success: true, data: { isConfigured: false } });
        }
        res.json({ success: true, data: { isConfigured: true } });
-    } catch (error) {
-       res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
 
@@ -390,9 +380,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: settings || {} });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async saveWebsiteSettings(req, res) {
@@ -416,9 +404,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: settings });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async publishListing(req, res) {
@@ -441,9 +427,7 @@ class ExecutiveController {
       }
 
       res.json({ success: true, data: { status: 'PUBLISHED' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
   
   async getVehicleMedia(req, res) {
@@ -465,9 +449,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: media });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async uploadVehicleMedia(req, res) {
@@ -506,9 +488,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: media });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
 
@@ -553,9 +533,7 @@ class ExecutiveController {
       ]);
 
       res.json({ success: true, data: { items: leads, total } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getCrmDeals(req, res) {
@@ -597,9 +575,7 @@ class ExecutiveController {
       ]);
 
       res.json({ success: true, data: { items: deals, total } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getPhoneSettings(req, res) {
@@ -612,9 +588,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: settings || {} });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async savePhoneSettings(req, res) {
@@ -631,9 +605,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: settings });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async calculateDeal(req, res) {
@@ -686,9 +658,7 @@ class ExecutiveController {
          return res.status(503).json({ success: false, error: { message: 'Auto Loan marketplace provider is not configured. External submissions are disabled.' } });
        }
        res.json({ success: true, data: { status: 'SUBMITTED' } });
-    } catch (error) {
-       res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async requestESignature(req, res) {
@@ -698,9 +668,7 @@ class ExecutiveController {
          return res.status(503).json({ success: false, error: { message: 'E-Signature provider is not configured. Automated document routing is disabled.' } });
        }
        res.json({ success: true, data: { status: 'SENT' } });
-    } catch (error) {
-       res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
 
@@ -730,7 +698,7 @@ class ExecutiveController {
       if (targetStoreIds.length === 0) return res.json({ success: true, data: { revenue: 0, expenses: 0, reconditioning: 0, netProfit: 0 } });
 
       const [deals, expenses, recon] = await Promise.all([
-        prisma.deal.findMany({ where: { storeId: { in: targetStoreIds }, status: 'WON' } }),
+        prisma.deal.findMany({ where: { storeId: { in: targetStoreIds }, status: 'CLOSED' } }),
         prisma.expense.findMany({ where: { storeId: { in: targetStoreIds } } }),
         prisma.reconditioningOrder.findMany({ where: { storeId: { in: targetStoreIds }, status: 'COMPLETED' } })
       ]);
@@ -751,9 +719,7 @@ class ExecutiveController {
           dealCount: deals.length
         }
       });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getExpenses(req, res) {
@@ -787,9 +753,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: expenses });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async createExpense(req, res) {
@@ -822,9 +786,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: expense });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getBhphLedgers(req, res) {
@@ -862,9 +824,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: deals });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getIntegrationSettings(req, res) {
@@ -877,9 +837,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: settings });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async saveIntegrationSettings(req, res) {
@@ -891,9 +849,7 @@ class ExecutiveController {
       
       // If we attempt to connect without valid backend provider keys, block it
       return res.status(503).json({ success: false, error: { message: `${provider} integration API provider is not configured.` } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async getTeamInvitations(req, res) {
@@ -906,9 +862,7 @@ class ExecutiveController {
       });
 
       res.json({ success: true, data: invites });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
   async createTeamInvitation(req, res) {
@@ -923,9 +877,7 @@ class ExecutiveController {
       }
 
       res.json({ success: true, data: { status: 'SENT' } });
-    } catch (error) {
-      res.status(500).json({ success: false, error: { message: 'Internal server error' } });
-    }
+    } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 
 }
