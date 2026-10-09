@@ -262,6 +262,66 @@ class CrmController {
       });
     }
   }
+  async getLeadMessages(req, res) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      const messages = await require('../config/prisma').leadMessage.findMany({
+        where: { leadId: id },
+        include: { user: { select: { full_name: true } } },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      const formatted = messages.map(m => ({
+        id: m.id,
+        sender: m.isFromLead ? 'customer' : 'dealer',
+        content: m.content,
+        createdAt: m.createdAt,
+        user: m.user || { full_name: m.isFromLead ? 'Customer' : 'System' }
+      }));
+
+      res.status(200).json({ success: true, messages: formatted });
+    } catch (error) {
+      console.error('Get Lead Messages Error:', error);
+      res.status(500).json({ success: false, error: { message: 'Failed to fetch messages' } });
+    }
+  }
+
+  async sendLeadMessage(req, res) {
+    try {
+      const { id } = req.params;
+      const { content } = req.body;
+      const user = req.user;
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ success: false, error: { message: 'Message content is required' } });
+      }
+
+      const msg = await require('../config/prisma').leadMessage.create({
+        data: {
+          leadId: id,
+          userId: user.id,
+          content: content,
+          isFromLead: false
+        },
+        include: { user: { select: { full_name: true } } }
+      });
+
+      const formatted = {
+        id: msg.id,
+        sender: 'dealer',
+        content: msg.content,
+        createdAt: msg.createdAt,
+        user: msg.user || { full_name: 'System' }
+      };
+
+      res.status(201).json({ success: true, message: formatted });
+    } catch (error) {
+      console.error('Send Lead Message Error:', error);
+      res.status(500).json({ success: false, error: { message: 'Failed to send message' } });
+    }
+  }
 }
 
 module.exports = new CrmController();

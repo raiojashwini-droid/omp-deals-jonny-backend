@@ -568,8 +568,8 @@ class ExecutiveController {
           where: { storeId: { in: targetStoreIds } },
           skip,
           take: parseInt(limit),
-          orderBy: { created_at: 'desc' },
-          include: { store: { select: { name: true } }, sales_reps: { select: { full_name: true } } }
+          orderBy: { createdAt: 'desc' },
+          include: { store: { select: { name: true } }, salesRep: { select: { full_name: true } } }
         }),
         prisma.deal.count({ where: { storeId: { in: targetStoreIds } } })
       ]);
@@ -653,10 +653,35 @@ class ExecutiveController {
 
   async submitLoan(req, res) {
     try {
-       // Validate Provider Boundary
-       /* if (!process.env.AUTO_LOAN_PROVIDER_KEY) { return res.status(503)... } */ 
+       const user = req.user;
+       const { price, downPayment, tradeInValue, tradeInPayoff, apr, termMonths, result, leadId, vehicleId, customerName } = req.body;
        
-       res.json({ success: true, data: { status: 'SUBMITTED' } });
+       let finalVehicleId = vehicleId;
+       if (!finalVehicleId) {
+         const firstVehicle = await prisma.vehicle.findFirst({ where: { storeId: user.storeId } });
+         if (!firstVehicle) throw new Error("No vehicle found in store to attach deal to");
+         finalVehicleId = firstVehicle.id;
+       }
+
+       const deal = await prisma.deal.create({
+         data: {
+           storeId: user.storeId,
+           vehicleId: finalVehicleId,
+           salesRepId: user.id,
+           leadId: leadId || null,
+           customerName: customerName || 'Walk-in Customer',
+           sale_price: parseFloat(price),
+           down_payment: parseFloat(downPayment),
+           trade_allowance: parseFloat(tradeInValue),
+           trade_payoff: parseFloat(tradeInPayoff),
+           apr: parseFloat(apr),
+           term_months: parseInt(termMonths),
+           monthly_payment: parseFloat(result.monthlyPayment),
+           status: 'PENDING'
+         }
+       });
+       
+       res.json({ success: true, data: { status: 'SUBMITTED', dealId: deal.id } });
     } catch(error) { res.status(500).json({ success: false, error: { message: error.message, stack: error.stack } }); }
   }
 

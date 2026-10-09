@@ -3,7 +3,7 @@ const router = express.Router();
 const executiveController = require('../controllers/executiveController');
 const { requireAuth, requireRoles } = require('../middleware/authMiddleware');
 
-router.get('/stores', requireAuth, requireRoles(['EXECUTIVE_ADMIN']), executiveController.getStores);
+router.get('/stores', requireAuth, requireRoles(['EXECUTIVE_ADMIN', 'DEALER_PRO', 'SALES_MGR', 'SALES_REP', 'LIAISON', 'LOAN_OFFICER']), executiveController.getStores);
 router.get('/reports', requireAuth, requireRoles(['EXECUTIVE_ADMIN']), executiveController.getReports);
 
 
