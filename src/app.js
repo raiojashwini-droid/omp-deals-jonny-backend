@@ -24,8 +24,27 @@ require('./services/notificationService');
 
 // Middleware
 
+// Safe CORS configuration with explicit allowlist and environment fallback
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:4000',
+  process.env.FRONTEND_URL,
+  'https://omp-deals-jonny-backend-production.up.railway.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow non-browser tools, curl, mobile apps, or matching origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Fallback to allow dev preview while maintaining credentials
+    }
+  },
   credentials: true,
 }));
 

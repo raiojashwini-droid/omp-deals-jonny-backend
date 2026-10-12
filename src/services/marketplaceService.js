@@ -12,17 +12,116 @@ class MarketplaceService {
       lot_status: 'AVAILABLE' // Only show available inventory
     };
 
+    const categoryAliases = {
+      vehicles: ['vehicles', 'cars_trucks'],
+      cars_trucks: ['cars_trucks', 'vehicles'],
+      commercial_vehicles: ['commercial_vehicles', 'commercial'],
+      work_vans: ['work_vans', 'van'],
+      family_vans: ['family_vans', 'van'],
+      suvs: ['suvs', 'suv'],
+      motorcycles: ['motorcycles', 'motorcycle'],
+      boats_marine: ['boats_marine', 'boat'],
+      campers_rvs: ['campers_rvs', 'rv', 'camper'],
+      auto_parts_accessories: ['auto_parts_accessories', 'auto_parts'],
+      powersport_vehicles: ['powersport_vehicles', 'powersport'],
+      tires_rims: ['tires_rims'],
+      trailers: ['trailers', 'trailer'],
+      other_vehicles: ['other_vehicles'],
+      baby_supplies_gear: ['baby_supplies_gear', 'baby_kids'],
+      baby_kids: ['baby_kids', 'baby_supplies_gear'],
+      baby_gear: ['baby_gear', 'baby_supplies_gear', 'baby_kids'],
+      baby_safety: ['baby_safety'],
+      bathing_skincare: ['bathing_skincare'],
+      baby_toys: ['baby_toys'],
+      boys_accessories: ['boys_accessories'],
+      girls_accessories: ['girls_accessories'],
+      car_seats_strollers_accessories: ['car_seats_strollers_accessories', 'baby_supplies_gear'],
+      diapering_potty_training: ['diapering_potty_training'],
+      feeding_nurturing: ['feeding_nurturing'],
+      health_baby_care: ['health_baby_care'],
+      nursery_furniture_decor: ['nursery_furniture_decor'],
+      pregnancy_maternity: ['pregnancy_maternity'],
+      other_baby_kids: ['other_baby_kids'],
+      clothing: ['clothing', 'clothing_shoes_accessories'],
+      clothing_shoes_accessories: ['clothing', 'clothing_shoes_accessories'],
+      baby_toddler_accessories: ['baby_toddler_accessories'],
+      baby_toddler_boys_clothing: ['baby_toddler_boys_clothing'],
+      baby_toddler_girls_clothing: ['baby_toddler_girls_clothing'],
+      boys_clothing_accessories: ['boys_clothing_accessories'],
+      boys_shoes: ['boys_shoes', 'shoes'],
+      girls_clothing_accessories: ['girls_clothing_accessories'],
+      girls_shoes: ['girls_shoes', 'shoes'],
+      jewelry_accessories: ['jewelry_accessories'],
+      men_clothing_accessories: ['men_clothing_accessories'],
+      men_shoes: ['men_shoes', 'shoes'],
+      women_clothing_accessories: ['women_clothing_accessories'],
+      women_shoes: ['women_shoes', 'shoes'],
+      other_clothing_accessories: ['other_clothing_accessories'],
+      electronics: ['electronics', 'electronics_media'],
+      electronics_media: ['electronics', 'electronics_media'],
+      '3d_printers_supplies': ['3d_printers_supplies'],
+      audio_speakers: ['audio_speakers'],
+      books_movies_music: ['books_movies_music'],
+      cameras_photography: ['cameras_photography'],
+      cell_phones_accessories: ['cell_phones_accessories'],
+      computers_laptops_accessories: ['computers_laptops_accessories'],
+      drones: ['drones'],
+      tvs_media_players: ['tvs_media_players'],
+      video_games_consoles: ['video_games_consoles', 'video_games', 'games_toys'],
+      wearables: ['wearables'],
+      virtual_reality: ['virtual_reality'],
+      other_electronics_media: ['other_electronics_media'],
+      video_games: ['video_games', 'games_toys'],
+      collectibles: ['collectibles', 'collectibles_arts'],
+      wedding_supplies: ['wedding_supplies', 'wedding'],
+      fitness_sports_equipment: ['fitness_sports_equipment', 'sports_outdoors'],
+      home_goods: ['home_goods', 'home_garden'],
+      home_garden: ['home_garden', 'home_goods', 'furniture', 'appliances'],
+      bathroom: ['bathroom', 'home_goods', 'home_garden'],
+      gadgets_video_cameras: ['gadgets_video_cameras', 'electronics'],
+      home_decor: ['home_decor', 'home_goods', 'home_garden'],
+      home_improvement: ['home_improvement', 'tools', 'home_goods'],
+      household: ['household', 'home_goods', 'appliances'],
+      kitchen_dinning: ['kitchen_dinning', 'home_goods', 'appliances'],
+      lawn_garden: ['lawn_garden', 'home_goods', 'tools'],
+      tools_machinery: ['tools_machinery', 'tools'],
+      other_home_garden: ['other_home_garden', 'home_goods', 'home_garden'],
+      toys: ['toys', 'games_toys', 'toys_games_hobbies'],
+      toys_games_hobbies: ['toys_games_hobbies', 'toys', 'games_toys'],
+      costumes_accessories_props: ['costumes_accessories_props'],
+      games_hobbies_puzzles: ['games_hobbies_puzzles', 'toys', 'games_toys'],
+      outdoor_toys_games: ['outdoor_toys_games', 'toys', 'games_toys'],
+      stuffed_plush_toy: ['stuffed_plush_toy', 'toys', 'games_toys'],
+      trading_cards_memorabilia: ['trading_cards_memorabilia', 'sports_cards', 'collectibles'],
+      musical_instruments: ['musical_instruments'],
+      other_toys_games_hobbies: ['other_toys_games_hobbies', 'toys', 'games_toys'],
+    };
+
     if (category) {
       if (category.startsWith('looking_for')) {
         // Querying Looking For demand requests specifically
         where.category = { startsWith: category };
+      } else if (category.startsWith('services')) {
+        // Querying Services directory specifically
+        where.category = { startsWith: category };
+      } else if (category.startsWith('jobs')) {
+        // Querying Jobs directory specifically (e.g. 'jobs' or 'jobs:healthcare')
+        where.category = { startsWith: category };
+      } else if (category.startsWith('real_estate')) {
+        // Querying Real Estate directory specifically (e.g. 'real_estate' or 'real_estate:rent_apartments')
+        where.category = { startsWith: category };
+      } else if (categoryAliases[category]) {
+        where.category = { in: categoryAliases[category] };
       } else {
         where.category = category;
       }
     } else {
-      // Ordinary general listings feed: exclude looking_for buyer demand posts
+      // Ordinary general listings feed: exclude looking_for, services, jobs, and real_estate listings
       where.NOT = [
-        { category: { startsWith: 'looking_for' } }
+        { category: { startsWith: 'looking_for' } },
+        { category: { startsWith: 'services' } },
+        { category: { startsWith: 'jobs' } },
+        { category: { startsWith: 'real_estate' } }
       ];
     }
 
@@ -45,11 +144,20 @@ class MarketplaceService {
     }
 
     if (q) {
-      where.OR = [
-        { title: { contains: q } },
-        { make: { contains: q } },
-        { model: { contains: q } }
-      ];
+      if (q.includes(' or ')) {
+        const parts = q.split(/\s+or\s+/i).map(p => p.trim()).filter(Boolean);
+        where.OR = parts.flatMap(part => [
+          { title: { contains: part } },
+          { make: { contains: part } },
+          { model: { contains: part } }
+        ]);
+      } else {
+        where.OR = [
+          { title: { contains: q } },
+          { make: { contains: q } },
+          { model: { contains: q } }
+        ];
+      }
     }
 
     const [total, vehicles] = await prisma.$transaction([
@@ -101,6 +209,7 @@ class MarketplaceService {
         category: v.category || 'general',
         condition: 'Like New (Direct from Seller)',
         truYou: v.truYou || isAdpVerified,
+        posterId: v.posterId || null,
         posted: 'Just now', // Mock
         image: images[0] || 'https://via.placeholder.com/400x220?text=No+Image',
         images: images
@@ -209,11 +318,17 @@ class MarketplaceService {
       storeIdToUse = user.storeId || null;
     }
 
-    // Safely store specific subCategory if provided (e.g. for looking_for demand posts)
-    // Prefix looking_for items with "looking_for:" to isolate from ordinary for-sale / dealer inventory
-    const categoryToStore = (data.category === 'looking_for')
-      ? (data.subCategory ? `looking_for:${data.subCategory}` : 'looking_for')
-      : (data.category || null);
+    // Safely store specific subCategory if provided (e.g. for looking_for demand posts or services)
+    // Prefix looking_for items with "looking_for:" and services with "services:" to isolate from ordinary for-sale inventory
+    let categoryToStore = null;
+    if (data.category === 'looking_for') {
+      categoryToStore = data.subCategory ? `looking_for:${data.subCategory}` : 'looking_for';
+    } else if (data.category === 'services' || data.isService) {
+      const serviceSub = data.serviceCategory || data.subCategory;
+      categoryToStore = serviceSub ? `services:${serviceSub}` : 'services';
+    } else {
+      categoryToStore = data.category || null;
+    }
 
     const newVehicle = await prisma.vehicle.create({
       data: {
@@ -426,13 +541,19 @@ class MarketplaceService {
   }
 
   async getGlobalStats() {
-    const activeVehiclesCount = await prisma.vehicle.count({
-      where: { lot_status: 'AVAILABLE' }
-    });
-    return {
-      activeUnits: activeVehiclesCount,
-      totalLeads: totalLeads
-    };
+    try {
+      const activeVehiclesCount = await prisma.vehicle.count({
+        where: { lot_status: 'AVAILABLE' }
+      });
+      const totalLeadsCount = await prisma.lead.count();
+      return {
+        activeUnits: activeVehiclesCount || 0,
+        totalLeads: totalLeadsCount || 0
+      };
+    } catch (err) {
+      console.error('getGlobalStats DB Error:', err);
+      throw err;
+    }
   }
 
   async getFavorites(userId) {
