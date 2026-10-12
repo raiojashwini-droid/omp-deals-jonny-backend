@@ -13,7 +13,17 @@ class MarketplaceService {
     };
 
     if (category) {
-      where.category = category;
+      if (category.startsWith('looking_for')) {
+        // Querying Looking For demand requests specifically
+        where.category = { startsWith: category };
+      } else {
+        where.category = category;
+      }
+    } else {
+      // Ordinary general listings feed: exclude looking_for buyer demand posts
+      where.NOT = [
+        { category: { startsWith: 'looking_for' } }
+      ];
     }
 
     if (location) {
@@ -88,6 +98,9 @@ class MarketplaceService {
         sellerTier: 'ELITE', // Mock tier
         shippingEligible: true, // Mock
         leadStatus: 'NEW MATCH', // Mock
+        category: v.category || 'general',
+        condition: 'Like New (Direct from Seller)',
+        truYou: v.truYou || isAdpVerified,
         posted: 'Just now', // Mock
         image: images[0] || 'https://via.placeholder.com/400x220?text=No+Image',
         images: images
@@ -106,19 +119,71 @@ class MarketplaceService {
 
     // Process Base64 images to save to disk and avoid MySQL max_allowed_packet crashes
     let processedPhotos = [];
-    if (data.photos && Array.isArray(data.photos)) {
-      processedPhotos = data.photos.map(photo => {
-        if (typeof photo === 'string' && photo.startsWith('data:image')) {
+    const uploadDir = path.join(__dirname, '..', '..', 'public', 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      } catch (err) {
+        console.error('Failed to create upload directory:', err);
+      }
+    }
+
+    // Enforce maximum photos count limit (max 10 images)
+    const rawPhotos = Array.isArray(data.photos) ? data.photos.slice(0, 10) : [];
+    if (rawPhotos.length > 0) {
+      processedPhotos = rawPhotos.map(photo => {
+        if (typeof photo === 'string' && photo.startsWith('data:image/')) {
           try {
-            const matches = photo.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+            const matches = photo.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
             if (matches && matches.length === 3) {
-              const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+              const rawSubtype = matches[1].toLowerCase();
+              const allowedExtensions = {
+                'jpeg': 'jpg',
+                'jpg': 'jpg',
+                'png': 'png',
+                'webp': 'webp',
+                'gif': 'gif'
+              };
+              const extension = allowedExtensions[rawSubtype];
+              if (!extension) {
+                console.warn(`Unsupported image subtype ${rawSubtype}, skipping base64 write`);
+                return photo;
+              }
+
               const base64Data = matches[2];
               const buffer = Buffer.from(base64Data, 'base64');
-              const fileName = `img_${crypto.randomBytes(8).toString('hex')}.${extension}`;
-              const filePath = path.join(__dirname, '..', 'public', 'uploads', fileName);
+
+              // Enforce 10MB individual file size limit and non-empty buffer
+              if (buffer.length === 0 || buffer.length > 10 * 1024 * 1024) {
+                console.warn('Image size zero or exceeds 10MB limit, skipping file write');
+                return photo;
+              }
+
+              // Magic byte / file signature verification
+              // JPEG: FF D8 FF
+              // PNG: 89 50 4E 47 (0x89, 'P', 'N', 'G')
+              // GIF: 47 49 46 38 ('G', 'I', 'F', '8')
+              // WEBP: 52 49 46 46 ... 57 45 42 50 ('RIFF'...'WEBP')
+              const isJpeg = buffer.length >= 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+              const isPng = buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+              const isGif = buffer.length >= 6 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
+              const isWebp = buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+
+              let verifiedExtension = null;
+              if (isJpeg) verifiedExtension = 'jpg';
+              else if (isPng) verifiedExtension = 'png';
+              else if (isGif) verifiedExtension = 'gif';
+              else if (isWebp) verifiedExtension = 'webp';
+
+              if (!verifiedExtension) {
+                console.warn('File bytes do not match valid image signature (magic bytes rejected), skipping');
+                return photo;
+              }
+
+              const fileName = `img_${crypto.randomBytes(8).toString('hex')}.${verifiedExtension}`;
+              const filePath = path.join(uploadDir, fileName);
               fs.writeFileSync(filePath, buffer);
-              return `http://localhost:4000/uploads/${fileName}`; // Return absolute URL for frontend
+              return `/uploads/${fileName}`; // Return root-relative URL for frontend & CDN consistency
             }
           } catch (err) {
             console.error('Error saving image:', err);
@@ -144,11 +209,17 @@ class MarketplaceService {
       storeIdToUse = user.storeId || null;
     }
 
+    // Safely store specific subCategory if provided (e.g. for looking_for demand posts)
+    // Prefix looking_for items with "looking_for:" to isolate from ordinary for-sale / dealer inventory
+    const categoryToStore = (data.category === 'looking_for')
+      ? (data.subCategory ? `looking_for:${data.subCategory}` : 'looking_for')
+      : (data.category || null);
+
     const newVehicle = await prisma.vehicle.create({
       data: {
         title: data.title,
         selling_price: isNaN(priceNum) ? 0 : priceNum,
-        category: data.category,
+        category: categoryToStore,
         location: data.location,
         image_urls: JSON.stringify(processedPhotos),
         lot_status: 'AVAILABLE',
@@ -358,12 +429,131 @@ class MarketplaceService {
     const activeVehiclesCount = await prisma.vehicle.count({
       where: { lot_status: 'AVAILABLE' }
     });
-    const totalLeads = await prisma.lead.count();
-
     return {
       activeUnits: activeVehiclesCount,
       totalLeads: totalLeads
     };
+  }
+
+  async getFavorites(userId) {
+    if (!userId) throw { status: 401, message: 'Authentication required' };
+
+    const favorites = await prisma.favorite.findMany({
+      where: { userId },
+      include: {
+        vehicle: {
+          include: {
+            store: {
+              select: { id: true, name: true, city: true, state: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return favorites.map(fav => {
+      const v = fav.vehicle;
+      let images = [];
+      try {
+        images = typeof v.image_urls === 'string' ? JSON.parse(v.image_urls) : (v.image_urls || []);
+      } catch (e) {
+        images = [];
+      }
+      const priceStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v.selling_price || 0);
+
+      return {
+        id: v.id,
+        favoriteId: fav.id,
+        title: v.title || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+        price: priceStr,
+        category: v.category || 'general',
+        location: v.location || (v.store ? `${v.store.city}, ${v.store.state}` : 'Fort Lauderdale, FL'),
+        image: images[0] || 'https://via.placeholder.com/400x220?text=Listing',
+        condition: 'Verified Listing',
+        seller: v.store ? v.store.name : 'Verified Seller',
+        createdAt: fav.createdAt
+      };
+    });
+  }
+
+  async addFavorite(userId, vehicleId) {
+    if (!userId) throw { status: 401, message: 'Authentication required' };
+    if (!vehicleId) throw { status: 400, message: 'vehicleId is required' };
+
+    // Verify vehicle exists
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId }
+    });
+    if (!vehicle) {
+      throw { status: 404, message: 'Listing not found' };
+    }
+
+    // Upsert or safely find existing
+    const existing = await prisma.favorite.findUnique({
+      where: {
+        userId_vehicleId: {
+          userId,
+          vehicleId
+        }
+      }
+    });
+
+    if (existing) {
+      return { success: true, message: 'Already favorited', favorite: existing };
+    }
+
+    const created = await prisma.favorite.create({
+      data: {
+        userId,
+        vehicleId
+      }
+    });
+
+    return { success: true, favorite: created };
+  }
+
+  async removeFavorite(userId, vehicleId) {
+    if (!userId) throw { status: 401, message: 'Authentication required' };
+    if (!vehicleId) throw { status: 400, message: 'vehicleId is required' };
+
+    try {
+      await prisma.favorite.delete({
+        where: {
+          userId_vehicleId: {
+            userId,
+            vehicleId
+          }
+        }
+      });
+      return { success: true, message: 'Favorite removed' };
+    } catch (err) {
+      // If not found, return safe success
+      return { success: true, message: 'Favorite was already removed' };
+    }
+  }
+
+  async syncGuestFavorites(userId, vehicleIds = []) {
+    if (!userId) throw { status: 401, message: 'Authentication required' };
+    if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) return { success: true, count: 0 };
+
+    let addedCount = 0;
+    for (const vid of vehicleIds) {
+      try {
+        const vehicle = await prisma.vehicle.findUnique({ where: { id: vid } });
+        if (vehicle) {
+          await prisma.favorite.upsert({
+            where: { userId_vehicleId: { userId, vehicleId: vid } },
+            update: {},
+            create: { userId, vehicleId: vid }
+          });
+          addedCount++;
+        }
+      } catch (e) {
+        // Continue merging remaining favorites
+      }
+    }
+    return { success: true, addedCount };
   }
 }
 

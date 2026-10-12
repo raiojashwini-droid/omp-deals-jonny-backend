@@ -31,7 +31,11 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static('public'));
+
+const path = require('path');
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
+app.use('/uploads', express.static(path.join(publicDir, 'uploads')));
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
@@ -49,6 +53,16 @@ app.use('/api/v1/loans', loansRoutes);
 app.use('/api/v1/documents', documentsRoutes);
 app.use('/api/v1/contracts', contractsRoutes);
 app.use('/api/v1/executive', executiveRoutes);
+
+// Health check endpoint (no auth required)
+app.get('/api/v1/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'OMP Deals Backend',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // 404 Handler
 app.use((req, res) => {

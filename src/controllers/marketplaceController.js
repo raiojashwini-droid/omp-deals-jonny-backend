@@ -12,34 +12,10 @@ class MarketplaceController {
         image_urls: (v.image_urls && v.image_urls.length > 0 && v.image_urls !== '[]') ? v.image_urls : JSON.stringify(['https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800'])
       }));
 
-      if (!data || data.length === 0) {
-        data = [{
-            id: "veh-001",
-            year: 2024,
-            make: "BMW",
-            model: "M4",
-            trim: "Competition",
-            price: 86400,
-            mileage: 3200,
-            lot_status: "AVAILABLE"
-        },
-        {
-            id: "veh-002",
-            year: 2023,
-            make: "Tesla",
-            model: "Model S",
-            trim: "Plaid",
-            price: 89500,
-            mileage: 8120,
-            lot_status: "AVAILABLE"
-        }];
-        total = 2;
-      }
-      
       res.status(200).json({
         success: true,
         total,
-        data
+        data: data || []
       });
     } catch (error) {
       console.error('Get Listings Error:', error);
@@ -170,6 +146,89 @@ class MarketplaceController {
     } catch (error) {
       console.error('Stats Error:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch global stats' });
+    }
+  }
+
+  async getFavorites(req, res) {
+    try {
+      const userId = req.user.id;
+      const favorites = await marketplaceService.getFavorites(userId);
+      res.status(200).json({
+        success: true,
+        data: favorites
+      });
+    } catch (error) {
+      console.error('Get Favorites Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: 'FETCH_FAVORITES_FAILED',
+          message: error.message || 'An error occurred while fetching favorites'
+        }
+      });
+    }
+  }
+
+  async addFavorite(req, res) {
+    try {
+      const userId = req.user.id;
+      const { vehicleId } = req.body;
+      const result = await marketplaceService.addFavorite(userId, vehicleId);
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Add Favorite Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: error.status === 404 ? 'NOT_FOUND' : 'ADD_FAVORITE_FAILED',
+          message: error.message || 'An error occurred while adding to favorites'
+        }
+      });
+    }
+  }
+
+  async removeFavorite(req, res) {
+    try {
+      const userId = req.user.id;
+      const { vehicleId } = req.params;
+      const result = await marketplaceService.removeFavorite(userId, vehicleId);
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Remove Favorite Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: 'REMOVE_FAVORITE_FAILED',
+          message: error.message || 'An error occurred while removing from favorites'
+        }
+      });
+    }
+  }
+
+  async syncFavorites(req, res) {
+    try {
+      const userId = req.user.id;
+      const { vehicleIds } = req.body;
+      const result = await marketplaceService.syncGuestFavorites(userId, vehicleIds);
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Sync Favorites Error:', error);
+      res.status(error.status || 500).json({
+        success: false,
+        error: {
+          code: 'SYNC_FAVORITES_FAILED',
+          message: error.message || 'An error occurred while syncing favorites'
+        }
+      });
     }
   }
 }
