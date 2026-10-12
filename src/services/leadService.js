@@ -79,29 +79,31 @@ class LeadService {
     }
 
     // Determine exact LeadQualification Enum based on requirements
+    // Allowed Prisma Enum values: BUY_NOW, BUYER_SHOPPING_AROUND, TAKING_TIME, SHOPPING_AROUND, NEW_LEAD
     let mappedQualification = 'SHOPPING_AROUND';
-    if (buyingTimeline === 'NOW or 24 hours') mappedQualification = 'BUY_NOW';
-    else if (buyingTimeline === 'Within 2-5 days') mappedQualification = 'BUYER_SHOPPING_AROUND';
-    else if (buyingTimeline === '1 week') mappedQualification = 'TAKING_TIME';
-    else if (buyingTimeline === 'Just Browsing') mappedQualification = 'SHOPPING_AROUND';
+    
+    // Normalize string input from client
+    const rawTimeline = String(buyingTimeline || '').toUpperCase();
+    const rawQual = String(data.qualification || '').toUpperCase();
 
-    // NEW LEAD Check (Created within last 24 hours)
-    let isNewLeadAccount = false;
-    if (caller && caller.createdAt) {
-      const hoursSinceCreation = (new Date() - new Date(caller.createdAt)) / (1000 * 60 * 60);
-      if (hoursSinceCreation <= 24) {
-        isNewLeadAccount = true;
-        // The New Lead Notification Should display for 24 hours... 
-        // We can set it as NEW_LEAD unless they actively explicitly set BUY_NOW
-        if (mappedQualification !== 'BUY_NOW') {
-          mappedQualification = 'NEW_LEAD';
-        }
-      }
+    if (rawQual === 'HOT' || rawQual === 'BUY_NOW' || rawTimeline === 'BUY_NOW' || rawTimeline.includes('NOW') || rawTimeline.includes('24 HOUR')) {
+      mappedQualification = 'BUY_NOW';
+    } else if (rawQual === 'WARM' || rawQual === 'BUYER_SHOPPING_AROUND' || rawTimeline === 'THIS_WEEK' || rawTimeline.includes('2-5 DAYS') || rawTimeline.includes('7')) {
+      mappedQualification = 'BUYER_SHOPPING_AROUND';
+    } else if (rawQual === 'TAKING_TIME' || rawTimeline === 'THIS_MONTH' || rawTimeline.includes('1 WEEK') || rawTimeline.includes('30')) {
+      mappedQualification = 'TAKING_TIME';
+    } else if (rawQual === 'NEW_LEAD') {
+      mappedQualification = 'NEW_LEAD';
+    } else {
+      mappedQualification = 'SHOPPING_AROUND';
     }
 
-    // If caller explicitly provided a qualification in data, prefer that
-    if (data.qualification) {
-      mappedQualification = data.qualification;
+    // NEW LEAD Check (Created within last 24 hours)
+    if (caller && caller.createdAt) {
+      const hoursSinceCreation = (new Date() - new Date(caller.createdAt)) / (1000 * 60 * 60);
+      if (hoursSinceCreation <= 24 && mappedQualification !== 'BUY_NOW') {
+        mappedQualification = 'NEW_LEAD';
+      }
     }
 
     const leadData = {

@@ -63,9 +63,29 @@ router.post('/ask', requireAuth, async (req, res) => {
       actionRoute = '/services';
       actionLabel = 'Open Local Services Directory';
       parsedFilters = ['Service: Auto Mechanics', 'Response: Under 30 mins', 'Rating: 4.8+ ★'];
+    } else if (lower.includes('real estate') || lower.includes('home') || lower.includes('apartment') || lower.includes('rent') || lower.includes('condo') || lower.includes('commercial property')) {
+      responseText = `I scanned the Real Estate database and located verified properties for Lease/Rent and Buy/Sale across Single-Family, Condos, and Commercial spaces.`;
+      actionRoute = '/real-estate';
+      actionLabel = 'Open Real Estate Marketplace';
+      parsedFilters = ['Category: Real Estate', 'Mode: Verified Properties', 'Status: Active'];
+    } else if (lower.includes('business') || lower.includes('franchise') || lower.includes('dealership for sale') || lower.includes('brokerage')) {
+      responseText = `Found profitable turnkey businesses for sale with certified gross revenue and NDA packages across 21 industry sectors.`;
+      actionRoute = '/businesses';
+      actionLabel = 'Explore Businesses For Sale';
+      parsedFilters = ['Industry: Automotive & Tech', 'Financials: Verified Cash Flow'];
+    } else if (lower.includes('looking for') || lower.includes('buyer request') || lower.includes('demand') || lower.includes('want to buy')) {
+      responseText = `Browsed active buyer requests in Looking For! You can pitch rare vehicles, vintage antiques, gigs, and special services directly to qualified buyers.`;
+      actionRoute = '/looking-for';
+      actionLabel = 'View Looking For Buyer Demands';
+      parsedFilters = ['Feed: Active Buyer Requests', 'Verification: TruYou Buyers'];
+    } else if (lower.includes('fav') || lower.includes('favorite') || lower.includes('saved')) {
+      responseText = `Here are your saved deals and vehicle searches in MyFav. Track real-time price reductions and dealer updates.`;
+      actionRoute = '/my-fav';
+      actionLabel = 'Open MyFav Watchlist';
+      parsedFilters = ['Folder: Saved Watchlist', 'Price Alerts: Active'];
     } else {
       responseText = `Search processed across all OMP Deals database categories. Here are your top matching items.`;
-      actionRoute = '/omp/marketplace';
+      actionRoute = '/for-sale';
       actionLabel = 'Browse Results in Marketplace';
       parsedFilters = ['Database Match: Verified', 'Status: Active'];
     }
