@@ -110,18 +110,22 @@ class MarketplaceService {
       } else if (category.startsWith('real_estate')) {
         // Querying Real Estate directory specifically (e.g. 'real_estate' or 'real_estate:rent_apartments')
         where.category = { startsWith: category };
+      } else if (category.startsWith('business')) {
+        // Querying Business For Sale directory specifically (e.g. 'business_for_sale' or 'business')
+        where.category = { startsWith: category };
       } else if (categoryAliases[category]) {
         where.category = { in: categoryAliases[category] };
       } else {
         where.category = category;
       }
     } else {
-      // Ordinary general listings feed: exclude looking_for, services, jobs, and real_estate listings
+      // Ordinary general listings feed: exclude looking_for, services, jobs, real_estate, and business listings
       where.NOT = [
         { category: { startsWith: 'looking_for' } },
         { category: { startsWith: 'services' } },
         { category: { startsWith: 'jobs' } },
-        { category: { startsWith: 'real_estate' } }
+        { category: { startsWith: 'real_estate' } },
+        { category: { startsWith: 'business' } }
       ];
     }
 
@@ -224,7 +228,9 @@ class MarketplaceService {
       throw { status: 400, message: 'Title and price are required' };
     }
 
-    const priceNum = parseFloat(data.price.replace(/[^0-9.]/g, ''));
+    const priceNum = typeof data.price === 'number' 
+      ? data.price 
+      : parseFloat(String(data.price || '0').replace(/[^0-9.]/g, '')) || 0;
 
     // Process Base64 images to save to disk and avoid MySQL max_allowed_packet crashes
     let processedPhotos = [];
@@ -318,14 +324,22 @@ class MarketplaceService {
       storeIdToUse = user.storeId || null;
     }
 
-    // Safely store specific subCategory if provided (e.g. for looking_for demand posts or services)
-    // Prefix looking_for items with "looking_for:" and services with "services:" to isolate from ordinary for-sale inventory
+    // Safely store specific subCategory if provided
     let categoryToStore = null;
     if (data.category === 'looking_for') {
       categoryToStore = data.subCategory ? `looking_for:${data.subCategory}` : 'looking_for';
     } else if (data.category === 'services' || data.isService) {
       const serviceSub = data.serviceCategory || data.subCategory;
       categoryToStore = serviceSub ? `services:${serviceSub}` : 'services';
+    } else if (data.category === 'jobs' || data.isJob) {
+      const jobSub = data.jobCategory || data.subCategory;
+      categoryToStore = jobSub ? `jobs:${jobSub}` : 'jobs';
+    } else if (data.category === 'real_estate' || data.isRealEstate) {
+      const reSub = data.realEstateCategory || data.subCategory;
+      categoryToStore = reSub ? `real_estate:${reSub}` : 'real_estate';
+    } else if (data.category === 'business_for_sale' || data.isBusiness) {
+      const bizSub = data.businessCategory || data.subCategory;
+      categoryToStore = bizSub ? `business_for_sale:${bizSub}` : 'business_for_sale';
     } else {
       categoryToStore = data.category || null;
     }
