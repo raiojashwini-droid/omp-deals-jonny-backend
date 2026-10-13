@@ -12,7 +12,8 @@ class LeadService {
       buyingTimeline, 
       phoneConsent, 
       sourceRef, 
-      dwellDurationSeconds 
+      dwellDurationSeconds,
+      notes
     } = data;
 
     if (!customerName || !buyingTimeline) {
